@@ -77,6 +77,26 @@ export function useAhorros() {
     setAhorros(prev => prev.filter(a => a.id !== id))
   }
 
+  const actualizarProyeccionObjetivo = async (nombreObjetivo, nuevoMonto) => {
+    let query = supabase
+      .from('ahorros')
+      .update({ ahorro_mensual_proyectado: nuevoMonto })
+      .eq('objetivo', nombreObjetivo)
+
+    if (esFamiliar && perfil?.familia_id) {
+      query = query.eq('familia_id', perfil.familia_id)
+    } else {
+      query = query.eq('user_id', user.id).is('familia_id', null)
+    }
+
+    const { error } = await query
+    if (error) throw error
+
+    setAhorros(prev => prev.map(a => 
+      a.objetivo === nombreObjetivo ? { ...a, ahorro_mensual_proyectado: nuevoMonto } : a
+    ))
+  }
+
   // Agrupar por objetivo — incluye info de moneda de depósitos y meta
   const objetivos = Object.values(
     ahorros.reduce((acc, ahorro) => {
@@ -87,6 +107,7 @@ export function useAhorros() {
           emoji: ahorro.emoji || '🎯',
           meta: ahorro.meta || 0,
           moneda_meta: ahorro.moneda_meta || 'ARS',
+          ahorro_mensual_proyectado: ahorro.ahorro_mensual_proyectado || 0,
           depositos: [],
           totalAhorrado: 0,
           totalAhorradoARS: 0,
@@ -102,6 +123,7 @@ export function useAhorros() {
       }
       if (ahorro.meta) acc[key].meta = Number(ahorro.meta)
       if (ahorro.moneda_meta) acc[key].moneda_meta = ahorro.moneda_meta
+      if (ahorro.ahorro_mensual_proyectado) acc[key].ahorro_mensual_proyectado = Number(ahorro.ahorro_mensual_proyectado)
       return acc
     }, {})
   )
@@ -113,6 +135,6 @@ export function useAhorros() {
   return {
     ahorros, objetivos, loading, error,
     totalAhorrado, totalAhorradoARS, totalAhorradoUSD,
-    agregarAhorro, actualizarAhorro, eliminarAhorro, refetch: fetchAhorros
+    agregarAhorro, actualizarAhorro, eliminarAhorro, actualizarProyeccionObjetivo, refetch: fetchAhorros
   }
 }

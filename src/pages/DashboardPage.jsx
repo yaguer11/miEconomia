@@ -16,15 +16,15 @@ import { MESES } from '../lib/constants'
 
 function StatCard({ icon: Icon, label, value, color, subtext }) {
   return (
-    <div className="glass rounded-2xl p-5 card-hover">
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: color + '20', border: `1px solid ${color}30` }}>
-          <Icon size={18} style={{ color }} />
+    <div className="glass rounded-2xl p-4 md:p-5 card-hover overflow-hidden">
+      <div className="flex items-start justify-between mb-2 md:mb-3">
+        <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center" style={{ background: color + '20', border: `1px solid ${color}30` }}>
+          <Icon className="w-4 h-4 md:w-5 md:h-5" style={{ color }} />
         </div>
       </div>
-      <p className="text-slate-400 text-xs mb-1">{label}</p>
-      <p className="text-white font-bold text-2xl">{value}</p>
-      {subtext && <p className="text-slate-500 text-xs mt-1">{subtext}</p>}
+      <p className="text-slate-400 text-xs mb-0.5 md:mb-1 truncate">{label}</p>
+      <p className="text-white font-bold text-lg md:text-2xl truncate" title={value}>{value}</p>
+      {subtext && <p className="text-slate-500 text-[10px] md:text-xs mt-0.5 md:mt-1 truncate">{subtext}</p>}
     </div>
   )
 }
@@ -198,16 +198,21 @@ export default function DashboardPage() {
               key={mode.id}
               id={`dashboard-view-mode-${mode.id}`}
               onClick={() => setViewMode(mode.id)}
-              className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all ${
+              className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-center ${
                 viewMode === mode.id
                   ? 'bg-indigo-500/20 border border-indigo-500/50 text-indigo-300'
                   : 'bg-slate-800/40 border border-slate-700/30 text-slate-400 hover:text-white'
               }`}
             >
-              {mode.emoji} {mode.label}
+              <span className="md:hidden text-base leading-none">{mode.emoji}</span>
+              <span className="hidden md:inline">{mode.emoji} {mode.label}</span>
             </button>
           ))}
         </div>
+        {/* Descripción del modo activo en móvil */}
+        <p className="md:hidden text-center text-xs text-slate-400 mt-3">
+          Vista: <span className="text-white font-medium">{VIEW_MODES.find(m => m.id === viewMode)?.label}</span>
+        </p>
       </div>
 
       {/* Stat cards */}

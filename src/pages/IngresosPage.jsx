@@ -53,7 +53,7 @@ export default function IngresosPage() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">Ingresos</h1>
           <p className="text-slate-400 text-sm">Registrá tus entradas de dinero</p>
@@ -61,10 +61,10 @@ export default function IngresosPage() {
         <button
           id="nuevo-ingreso-btn"
           onClick={() => setModal({ mode: 'crear' })}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-green text-white font-semibold text-sm hover:opacity-90 hover:shadow-lg hover:shadow-emerald-500/30 transition-all"
+          className="flex-shrink-0 flex items-center gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl gradient-green text-white font-semibold text-sm hover:opacity-90 shadow-lg shadow-emerald-500/20 md:shadow-emerald-500/30 transition-all"
         >
-          <Plus size={16} />
-          Nuevo ingreso
+          <Plus size={18} className="md:w-4 md:h-4" />
+          <span className="hidden sm:inline">Nuevo ingreso</span>
         </button>
       </div>
 
@@ -86,15 +86,20 @@ export default function IngresosPage() {
           {VIEW_MODES.map(mode => (
             <button key={mode.id} id={`view-mode-ingresos-${mode.id}`}
               onClick={() => setViewMode(mode.id)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center ${
                 viewMode === mode.id
                   ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300'
                   : 'bg-slate-800/40 border border-slate-700/30 text-slate-400 hover:text-white'
               }`}>
-              {mode.emoji} {mode.label}
+              <span className="md:hidden text-base leading-none">{mode.emoji}</span>
+              <span className="hidden md:inline">{mode.emoji} {mode.label}</span>
             </button>
           ))}
         </div>
+        {/* Descripción del modo activo en móvil */}
+        <p className="md:hidden text-center text-xs text-slate-400 mt-3">
+          Vista: <span className="text-white font-medium">{VIEW_MODES.find(m => m.id === viewMode)?.label}</span>
+        </p>
         {cotizacionMEP && (
           <p className="text-xs text-slate-500 text-center">
             💹 MEP: {formatARS(cotizacionMEP.venta)}
@@ -105,13 +110,13 @@ export default function IngresosPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-        <div className="glass rounded-2xl p-4">
-          <p className="text-slate-400 text-xs mb-1">Total del mes</p>
-          <p className="text-emerald-400 font-bold text-xl">{formatInMode(totalEnModo)}</p>
+        <div className="glass rounded-2xl p-4 overflow-hidden">
+          <p className="text-slate-400 text-xs mb-1 truncate">Total del mes</p>
+          <p className="text-emerald-400 font-bold text-xl truncate" title={formatInMode(totalEnModo)}>{formatInMode(totalEnModo)}</p>
         </div>
-        <div className="glass rounded-2xl p-4">
-          <p className="text-slate-400 text-xs mb-1">Promedio por ingreso</p>
-          <p className="text-white font-bold text-xl">
+        <div className="glass rounded-2xl p-4 overflow-hidden">
+          <p className="text-slate-400 text-xs mb-1 truncate">Promedio por ingreso</p>
+          <p className="text-white font-bold text-xl truncate" title={formatInMode(ingresosFiltrados.length > 0 ? totalEnModo / ingresosFiltrados.length : 0)}>
             {formatInMode(ingresosFiltrados.length > 0 ? totalEnModo / ingresosFiltrados.length : 0)}
           </p>
         </div>
@@ -182,10 +187,10 @@ export default function IngresosPage() {
             return (
               <div
                 key={ingreso.id}
-                className="glass rounded-2xl p-4 card-hover flex items-center gap-4 group"
+                className="glass rounded-2xl p-3 md:p-4 card-hover flex items-center gap-3 md:gap-4 group"
               >
                 <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                  className="w-9 h-9 md:w-11 md:h-11 rounded-xl flex items-center justify-center text-lg md:text-xl flex-shrink-0"
                   style={{ background: cat.color + '20', border: `1px solid ${cat.color}40` }}
                 >
                   {cat.emoji}
@@ -194,19 +199,20 @@ export default function IngresosPage() {
                   <p className="text-white font-medium text-sm truncate">
                     {ingreso.descripcion || cat.label}
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: cat.color + '20', color: cat.color }}>
+                  <div className="hidden md:flex flex-wrap items-center gap-2 mt-0.5">
+                    <span className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: cat.color + '20', color: cat.color }}>
                       {cat.label}
                     </span>
                     {esFamiliar && ingreso.miembro && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1">
-                        {ingreso.miembro.avatar_emoji} {ingreso.miembro.nombre_display}
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1 max-w-[160px]">
+                        <span className="flex-shrink-0">{ingreso.miembro.avatar_emoji}</span>
+                        <span className="truncate">{ingreso.miembro.nombre_display}</span>
                       </span>
                     )}
-                    <span className="text-slate-500 text-xs">{formatDate(ingreso.fecha)}</span>
+                    <span className="text-slate-500 text-xs whitespace-nowrap">{formatDate(ingreso.fecha)}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <div className="text-right">
                     <p className="text-emerald-400 font-bold text-sm">
                       {ingreso.moneda === 'USD' ? formatUSD(ingreso.monto) : formatARS(ingreso.monto)}
@@ -222,7 +228,7 @@ export default function IngresosPage() {
                   }`}>
                     {ingreso.moneda || 'ARS'}
                   </span>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       id={`edit-ingreso-${ingreso.id}`}
                       onClick={() => setModal({ mode: 'editar', ingreso })}

@@ -17,9 +17,13 @@ function ProgressBar({ porcentaje, color = '#10b981' }) {
   )
 }
 
-function ObjetivoCard({ objetivo, onAgregar, onEliminar, onEditar, currency }) {
+function ObjetivoCard({ objetivo, onAgregar, onEliminar, onEditar, onActualizarProyeccion, currency }) {
   const [expanded, setExpanded] = useState(false)
   const [eliminando, setEliminando] = useState(null)
+  const [editandoProy, setEditandoProy] = useState(false)
+  const [expandedProy, setExpandedProy] = useState(false)
+  const [inputProy, setInputProy] = useState(objetivo.ahorro_mensual_proyectado?.toString() || '')
+  const [monedaProy, setMonedaProy] = useState(objetivo.moneda_proyeccion || 'ARS')
   const { formatARS, formatUSD, formatInMode, convertToARS, convertToUSD, viewMode, cotizacionMEP } = currency
 
   const handleEliminar = async (id) => {
@@ -156,9 +160,119 @@ function ObjetivoCard({ objetivo, onAgregar, onEliminar, onEditar, currency }) {
           </button>
 
           {expanded && (
-            <div className="px-4 pb-4 space-y-2">
-              {objetivo.depositos.map(dep => (
-                <div key={dep.id} className="glass-light rounded-xl p-3 flex items-center gap-3 group">
+            <div className="px-4 pb-4 space-y-4">
+              {/* Sección Simulador de Proyección */}
+              {objetivo.meta > 0 && totalEnMonedaMeta < objetivo.meta && (
+                <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
+                  <div className={`flex items-center justify-between ${expandedProy ? 'mb-3' : ''}`}>
+                    <button 
+                      onClick={() => setExpandedProy(!expandedProy)}
+                      className="text-sm font-semibold text-white flex items-center gap-2 hover:text-indigo-300 transition-colors text-left"
+                    >
+                      <span>⏱️</span> Proyección a la meta
+                      {expandedProy ? <ChevronUp size={14} className="text-slate-500 flex-shrink-0" /> : <ChevronDown size={14} className="text-slate-500 flex-shrink-0" />}
+                    </button>
+                    {!editandoProy && (
+                      <button onClick={() => { setExpandedProy(true); setEditandoProy(true); }} className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-medium bg-indigo-500/10 px-2 py-1 rounded-md">
+                        <Pencil size={12} /> Editar
+                      </button>
+                    )}
+                  </div>
+                  
+                  {expandedProy && (
+                    <div className="mt-3 border-t border-slate-700/50 pt-3 flex flex-col gap-3">
+                      {editandoProy ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-slate-400 text-sm">Ahorro mensual:</span>
+                          <div className="flex items-center">
+                            <input 
+                              type="number" 
+                              value={inputProy} 
+                              onChange={e => setInputProy(e.target.value)}
+                              className="bg-slate-900 border border-slate-700 rounded-l-lg px-3 py-1.5 text-sm text-white w-28 focus:outline-none focus:border-indigo-500 transition-colors"
+                              placeholder="Ej: 50000"
+                              min="0"
+                            />
+                            <select
+                              value={monedaProy}
+                              onChange={e => setMonedaProy(e.target.value)}
+                              className="bg-slate-800 border border-l-0 border-slate-700 rounded-r-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+                            >
+                              <option value="ARS">ARS</option>
+                              <option value="USD">USD</option>
+                            </select>
+                          </div>
+                        </div>
+                      ) : (
+                    <p className="text-slate-300 text-sm">
+                      Ahorrando <strong className="text-white">{objetivo.moneda_proyeccion === 'USD' ? formatUSD(objetivo.ahorro_mensual_proyectado || 0) : formatARS(objetivo.ahorro_mensual_proyectado || 0)} {objetivo.moneda_proyeccion || 'ARS'}</strong> por mes:
+                    </p>
+                  )}
+
+                  {(() => {
+                    const montoMensual = editandoProy ? Number(inputProy) : objetivo.ahorro_mensual_proyectado;
+                    const monedaMensual = editandoProy ? monedaProy : (objetivo.moneda_proyeccion || 'ARS');
+                    if (!montoMensual || montoMensual <= 0) {
+                      return <p className="text-xs text-slate-500 italic">Ingresá un ahorro mensual estimado para calcular cuándo alcanzarás la meta.</p>;
+                    }
+                    
+                    const faltante = objetivo.meta - totalEnMonedaMeta;
+                    
+                    let montoMensualConvertido = montoMensual;
+                    if (monedaMensual !== objetivo.moneda_meta && cotizacionMEP) {
+                       if (monedaMensual === 'ARS' && objetivo.moneda_meta === 'USD') {
+                           montoMensualConvertido = montoMensual / cotizacionMEP.venta;
+                       } else if (monedaMensual === 'USD' && objetivo.moneda_meta === 'ARS') {
+                           montoMensualConvertido = montoMensual * cotizacionMEP.venta;
+                       }
+                    }
+
+                    const mesesFloat = faltante / montoMensualConvertido;
+                    const meses = Math.floor(mesesFloat);
+                    const dias = Math.round((mesesFloat - meses) * 30);
+                    
+                    if (meses === 0 && dias === 0) {
+                       return (
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2 inline-block">
+                          <p className="text-emerald-400 text-sm font-medium">¡Estás a punto de alcanzarlo!</p>
+                        </div>
+                       )
+                    }
+
+                    return (
+                      <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-2 inline-block">
+                        <p className="text-indigo-300 text-sm">
+                          Alcanzarás tu objetivo en <strong className="text-indigo-200">{meses > 0 ? `${meses} mes${meses !== 1 ? 'es' : ''}` : ''}{meses > 0 && dias > 0 ? ' y ' : ''}{dias > 0 ? `${dias} día${dias !== 1 ? 's' : ''}` : ''}</strong>
+                        </p>
+                      </div>
+                    )
+                  })()}
+
+                  {editandoProy && (
+                    <div className="flex items-center gap-2 justify-end mt-1">
+                      <button onClick={() => { setEditandoProy(false); setInputProy(objetivo.ahorro_mensual_proyectado?.toString() || ''); setMonedaProy(objetivo.moneda_proyeccion || 'ARS'); }} className="text-sm text-slate-400 hover:text-white px-3 py-1.5">Cancelar</button>
+                      <button 
+                        onClick={() => {
+                          const val = Number(inputProy);
+                          if (val >= 0) {
+                            onActualizarProyeccion(objetivo.nombre, val, monedaProy);
+                            setEditandoProy(false);
+                          }
+                        }} 
+                        className="text-sm gradient-green text-white px-4 py-1.5 rounded-lg hover:opacity-90 font-medium shadow-lg">
+                        Guardar
+                      </button>
+                    </div>
+                  )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Lista de depósitos */}
+              <div className="space-y-2">
+                {objetivo.depositos.map(dep => (
+                <div key={dep.id} className="glass-light rounded-xl p-2.5 md:p-3 flex items-center gap-2.5 md:gap-3 group">
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium truncate">
                       {dep.descripcion || 'Depósito'}
@@ -180,7 +294,7 @@ function ObjetivoCard({ objetivo, onAgregar, onEliminar, onEditar, currency }) {
                   }`}>
                     {dep.moneda || 'ARS'}
                   </span>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                     <button id={`edit-ahorro-${dep.id}`} onClick={() => onEditar(dep)}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors">
                       <Pencil size={13} />
@@ -197,6 +311,7 @@ function ObjetivoCard({ objetivo, onAgregar, onEliminar, onEditar, currency }) {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           )}
         </div>
@@ -206,7 +321,7 @@ function ObjetivoCard({ objetivo, onAgregar, onEliminar, onEditar, currency }) {
 }
 
 export default function AhorrosPage() {
-  const { ahorros, objetivos, loading, totalAhorradoARS, totalAhorradoUSD, agregarAhorro, actualizarAhorro, eliminarAhorro } = useAhorros()
+  const { ahorros, objetivos, loading, totalAhorradoARS, totalAhorradoUSD, agregarAhorro, actualizarAhorro, eliminarAhorro, actualizarProyeccionObjetivo } = useAhorros()
   const [modal, setModal] = useState(null)
   const currency = useCurrency()
   const { viewMode, setViewMode, formatARS, formatUSD, formatInMode, sumInMode, cotizacionMEP, tiempoActualizacion } = currency
@@ -244,7 +359,7 @@ export default function AhorrosPage() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">Ahorros</h1>
           <p className="text-slate-400 text-sm">Seguí el progreso de tus objetivos</p>
@@ -252,10 +367,10 @@ export default function AhorrosPage() {
         <button
           id="nuevo-ahorro-btn"
           onClick={() => setModal({ mode: 'crear' })}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-green text-white font-semibold text-sm hover:opacity-90 hover:shadow-lg hover:shadow-emerald-500/30 transition-all"
+          className="flex-shrink-0 flex items-center gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl gradient-green text-white font-semibold text-sm hover:opacity-90 shadow-lg shadow-emerald-500/20 md:shadow-emerald-500/30 transition-all"
         >
-          <Plus size={16} />
-          Nuevo ahorro
+          <Plus size={18} className="md:w-4 md:h-4" />
+          <span className="hidden sm:inline">Nuevo ahorro</span>
         </button>
       </div>
 
@@ -265,16 +380,16 @@ export default function AhorrosPage() {
           <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-3xl">
             🐷
           </div>
-          <div>
-            <p className="text-slate-400 text-sm">Total ahorrado</p>
-            <p className="text-emerald-400 font-bold text-3xl">{formatTotal()}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-slate-400 text-sm truncate">Total ahorrado</p>
+            <p className="text-emerald-400 font-bold text-2xl md:text-3xl truncate" title={formatTotal()}>{formatTotal()}</p>
             {/* Desglose si hay ambas monedas */}
             {totalAhorradoARS > 0 && totalAhorradoUSD > 0 && (
-              <p className="text-slate-500 text-xs mt-0.5">
+              <p className="text-slate-500 text-xs mt-0.5 truncate" title={`${formatARS(totalAhorradoARS)} ARS + ${formatUSD(totalAhorradoUSD)} USD`}>
                 {formatARS(totalAhorradoARS)} ARS + {formatUSD(totalAhorradoUSD)} USD
               </p>
             )}
-            <p className="text-slate-500 text-xs mt-0.5">{objetivos.length} objetivo{objetivos.length !== 1 ? 's' : ''} activo{objetivos.length !== 1 ? 's' : ''}</p>
+            <p className="text-slate-500 text-xs mt-0.5 truncate">{objetivos.length} objetivo{objetivos.length !== 1 ? 's' : ''} activo{objetivos.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
 
@@ -283,15 +398,20 @@ export default function AhorrosPage() {
           {VIEW_MODES.map(mode => (
             <button key={mode.id} id={`view-mode-ahorros-${mode.id}`}
               onClick={() => setViewMode(mode.id)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center ${
                 viewMode === mode.id
                   ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300'
                   : 'bg-slate-800/40 border border-slate-700/30 text-slate-400 hover:text-white'
               }`}>
-              {mode.emoji} {mode.label}
+              <span className="md:hidden text-base leading-none">{mode.emoji}</span>
+              <span className="hidden md:inline">{mode.emoji} {mode.label}</span>
             </button>
           ))}
         </div>
+        {/* Descripción del modo activo en móvil */}
+        <p className="md:hidden text-center text-xs text-slate-400 mt-3 mb-2">
+          Vista: <span className="text-white font-medium">{VIEW_MODES.find(m => m.id === viewMode)?.label}</span>
+        </p>
 
         {cotizacionMEP && (
           <p className="text-xs text-slate-500 text-center">
@@ -321,6 +441,7 @@ export default function AhorrosPage() {
               onAgregar={handleAgregarDeposito}
               onEliminar={eliminarAhorro}
               onEditar={(dep) => setModal({ mode: 'editar', ahorro: dep })}
+              onActualizarProyeccion={actualizarProyeccionObjetivo}
               currency={currency}
             />
           ))}

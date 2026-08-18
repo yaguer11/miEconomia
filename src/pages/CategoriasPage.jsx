@@ -282,15 +282,15 @@ export default function CategoriasPage() {
   return (
     <div className="max-w-3xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">Categorías</h1>
           <p className="text-slate-400 text-sm">Gestioná tus categorías y subcategorías de gastos</p>
         </div>
         <button id="nueva-categoria-btn" onClick={() => setModalCat({ mode: 'crear' })}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-purple text-white font-semibold text-sm hover:opacity-90 hover:shadow-lg hover:shadow-indigo-500/30 transition-all">
-          <Plus size={16} />
-          Nueva categoría
+          className="flex-shrink-0 flex items-center gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl gradient-purple text-white font-semibold text-sm hover:opacity-90 shadow-lg shadow-indigo-500/20 md:shadow-indigo-500/30 transition-all">
+          <Plus size={18} className="md:w-4 md:h-4" />
+          <span className="hidden sm:inline">Nueva categoría</span>
         </button>
       </div>
 
