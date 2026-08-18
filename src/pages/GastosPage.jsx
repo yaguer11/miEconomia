@@ -1,0 +1,306 @@
+import { useState } from 'react'
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Filter } from 'lucide-react'
+import { useGastos } from '../hooks/useGastos'
+import { useProfile } from '../contexts/ProfileContext'
+import { useCurrency, VIEW_MODES } from '../contexts/CurrencyContext'
+import { useCategorias } from '../contexts/CategoriasContext'
+import GastoModal from '../components/GastoModal'
+import { formatDate, MESES, getCategoriaById } from '../lib/constants'
+
+export default function GastosPage() {
+  const now = new Date()
+  const [mes, setMes] = useState(now.getMonth() + 1)
+  const [anio, setAnio] = useState(now.getFullYear())
+  const [filtroCategoriaId, setFiltroCategoriaId] = useState('todas')
+  const [modal, setModal] = useState(null)
+  const [eliminando, setEliminando] = useState(null)
+
+  const { gastos, loading, agregarGasto, actualizarGasto, eliminarGasto } = useGastos(mes, anio)
+  const { esFamiliar, miembros, miMiembro } = useProfile()
+  const { viewMode, setViewMode, sumInMode, formatInMode, formatARS, formatUSD, cotizacionMEP, tiempoActualizacion } = useCurrency()
+  const { categorias } = useCategorias()
+
+  const prevMes = () => {
+    if (mes === 1) { setMes(12); setAnio(a => a - 1) }
+    else setMes(m => m - 1)
+  }
+
+  const nextMes = () => {
+    if (mes === 12) { setMes(1); setAnio(a => a + 1) }
+    else setMes(m => m + 1)
+  }
+
+  // Filtro: por categoria_id (nuevo) o sin categoría ('sin_cat')
+  const gastosFiltrados = filtroCategoriaId === 'todas'
+    ? gastos
+    : filtroCategoriaId === 'sin_cat'
+      ? gastos.filter(g => !g.categoria_id)
+      : gastos.filter(g => g.categoria_id === filtroCategoriaId)
+
+  const totalEnModo = sumInMode(gastosFiltrados.map(g => ({ monto: g.monto, moneda: g.moneda || 'ARS' })))
+
+  const handleEliminar = async (id) => {
+    if (eliminando === id) {
+      await eliminarGasto(id)
+      setEliminando(null)
+    } else {
+      setEliminando(id)
+    }
+  }
+
+  // Totales por categoría (para el filtro)
+  const totalesCat = gastos.reduce((acc, g) => {
+    const key = g.categoria_id || 'sin_cat'
+    const val = sumInMode([{ monto: g.monto, moneda: g.moneda || 'ARS' }])
+    acc[key] = (acc[key] || 0) + val
+    return acc
+  }, {})
+
+  const topCategoriaEntry = Object.entries(totalesCat)
+    .filter(([k]) => k !== 'sin_cat')
+    .sort((a, b) => b[1] - a[1])[0]
+
+  const topCategoria = topCategoriaEntry
+    ? categorias.find(c => c.id === topCategoriaEntry[0])
+    : null
+
+  // Categorías presentes en los gastos de este mes
+  const categoriasPresentes = categorias.filter(cat =>
+    gastos.some(g => g.categoria_id === cat.id)
+  )
+  const haySinCategoria = gastos.some(g => !g.categoria_id)
+
+  // Resolución de categoría por gasto (nuevo sistema o legacy)
+  const getCatDisplay = (gasto) => {
+    if (gasto.categoria) return gasto.categoria   // objeto del join
+    return null
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-1">Gastos</h1>
+          <p className="text-slate-400 text-sm">Control de tus gastos diarios</p>
+        </div>
+        <button id="nuevo-gasto-btn" onClick={() => setModal({ mode: 'crear' })}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-purple text-white font-semibold text-sm hover:opacity-90 hover:shadow-lg hover:shadow-indigo-500/30 transition-all">
+          <Plus size={16} />
+          Nuevo gasto
+        </button>
+      </div>
+
+      {/* Navegador de mes + ViewMode selector */}
+      <div className="glass rounded-2xl p-5 mb-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <button id="prev-mes" onClick={prevMes}
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+            <ChevronLeft size={20} />
+          </button>
+          <div className="text-center">
+            <p className="text-white font-bold text-lg">{MESES[mes - 1]} {anio}</p>
+            <p className="text-slate-400 text-sm">{gastos.length} gastos registrados</p>
+          </div>
+          <button id="next-mes" onClick={nextMes}
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+            <ChevronRight size={20} />
+          </button>
+        </div>
+
+        <div className="flex gap-2">
+          {VIEW_MODES.map(mode => (
+            <button key={mode.id} id={`view-mode-gastos-${mode.id}`}
+              onClick={() => setViewMode(mode.id)}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                viewMode === mode.id
+                  ? 'bg-indigo-500/20 border border-indigo-500/50 text-indigo-300'
+                  : 'bg-slate-800/40 border border-slate-700/30 text-slate-400 hover:text-white'
+              }`}>
+              {mode.emoji} {mode.label}
+            </button>
+          ))}
+        </div>
+
+        {cotizacionMEP && (
+          <p className="text-xs text-slate-500 text-center">
+            💹 MEP: {formatARS(cotizacionMEP.venta)}
+            {tiempoActualizacion !== null && <span className="ml-2">(hace {tiempoActualizacion} min)</span>}
+          </p>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div className="glass rounded-2xl p-4">
+          <p className="text-slate-400 text-xs mb-1">Total del mes</p>
+          <p className="text-red-400 font-bold text-xl">{formatInMode(totalEnModo)}</p>
+        </div>
+        <div className="glass rounded-2xl p-4">
+          <p className="text-slate-400 text-xs mb-1">Promedio diario</p>
+          <p className="text-white font-bold text-xl">
+            {formatInMode(gastosFiltrados.length > 0 ? totalEnModo / new Date(anio, mes, 0).getDate() : 0)}
+          </p>
+        </div>
+        {topCategoria && (
+          <div className="glass rounded-2xl p-4 col-span-2 md:col-span-1">
+            <p className="text-slate-400 text-xs mb-1">Mayor categoría</p>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{topCategoria.emoji}</span>
+              <div>
+                <p className="text-white font-bold text-sm leading-none">{topCategoria.nombre}</p>
+                <p className="text-slate-400 text-xs">{formatInMode(topCategoriaEntry[1])}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Filtro categorías */}
+      <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+        <Filter size={14} className="text-slate-400 flex-shrink-0" />
+        <button id="filtro-todas" onClick={() => setFiltroCategoriaId('todas')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 transition-all ${
+            filtroCategoriaId === 'todas' ? 'gradient-purple text-white' : 'glass-light text-slate-400 hover:text-white'
+          }`}>
+          Todas
+        </button>
+
+        {categoriasPresentes.map(cat => (
+          <button key={cat.id} id={`filtro-${cat.id}`}
+            onClick={() => setFiltroCategoriaId(cat.id)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 transition-all flex items-center gap-1 ${
+              filtroCategoriaId === cat.id ? 'text-white border border-current' : 'glass-light text-slate-400 hover:text-white'
+            }`}
+            style={filtroCategoriaId === cat.id ? { borderColor: cat.color, color: cat.color, background: cat.color + '20' } : {}}>
+            {cat.emoji} {cat.nombre}
+          </button>
+        ))}
+
+        {haySinCategoria && (
+          <button id="filtro-sin-cat" onClick={() => setFiltroCategoriaId('sin_cat')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 transition-all flex items-center gap-1 ${
+              filtroCategoriaId === 'sin_cat' ? 'bg-slate-700 text-slate-200 border border-slate-500' : 'glass-light text-slate-500 hover:text-white'
+            }`}>
+            📦 Sin categoría
+          </button>
+        )}
+      </div>
+
+      {/* Lista de gastos */}
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : gastosFiltrados.length === 0 ? (
+        <div className="glass rounded-2xl p-12 text-center">
+          <p className="text-4xl mb-3">💸</p>
+          <p className="text-slate-300 font-medium">No hay gastos registrados</p>
+          <p className="text-slate-500 text-sm mt-1">
+            {filtroCategoriaId !== 'todas' ? 'Probá con otra categoría' : 'Agregá tu primer gasto del mes'}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {gastosFiltrados.map((gasto) => {
+            const cat = gasto.categoria_obj  // del join (puede ser null para históricos)
+            // Fallback para gastos históricos con campo texto
+            const legacyCat = !cat && gasto.categoria
+              ? getCategoriaById(gasto.categoria)
+              : null
+            const displayCat = cat || legacyCat
+
+            return (
+              <div key={gasto.id}
+                className="glass rounded-2xl p-4 card-hover flex items-center gap-4 group">
+                {/* Icono categoría */}
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                  style={displayCat
+                    ? { background: displayCat.color + '20', border: `1px solid ${displayCat.color}40` }
+                    : { background: '#64748b20', border: '1px solid #64748b40' }
+                  }>
+                  {displayCat ? displayCat.emoji : '📦'}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium text-sm truncate">
+                    {gasto.descripcion || displayCat?.nombre || 'Sin categoría'}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    {/* Badge categoría */}
+                    {displayCat && (
+                      <span className="text-xs px-2 py-0.5 rounded-full"
+                        style={{ background: displayCat.color + '20', color: displayCat.color }}>
+                        {displayCat.nombre || displayCat.label}
+                      </span>
+                    )}
+                    {/* Badge subcategoría */}
+                    {gasto.subcategoria_obj && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                        {gasto.subcategoria_obj.nombre}
+                      </span>
+                    )}
+                    {/* Badge miembro */}
+                    {esFamiliar && gasto.miembro && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1">
+                        {gasto.miembro.avatar_emoji} {gasto.miembro.nombre_display}
+                      </span>
+                    )}
+                    <span className="text-slate-500 text-xs">{formatDate(gasto.fecha)}</span>
+                  </div>
+                </div>
+
+                {/* Monto + moneda badge + acciones */}
+                <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    <p className="text-red-400 font-bold text-sm">
+                      {gasto.moneda === 'USD' ? formatUSD(gasto.monto) : formatARS(gasto.monto)}
+                    </p>
+                    {(viewMode === 'unified_ARS' || viewMode === 'unified_USD') && gasto.moneda === 'USD' && cotizacionMEP && (
+                      <p className="text-slate-500 text-xs">≈ {formatARS(Number(gasto.monto) * cotizacionMEP.venta)}</p>
+                    )}
+                  </div>
+                  <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${
+                    (gasto.moneda || 'ARS') === 'USD' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-sky-500/20 text-sky-400'
+                  }`}>
+                    {gasto.moneda || 'ARS'}
+                  </span>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button id={`edit-gasto-${gasto.id}`} onClick={() => setModal({ mode: 'editar', gasto })}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors">
+                      <Pencil size={14} />
+                    </button>
+                    <button id={`delete-gasto-${gasto.id}`} onClick={() => handleEliminar(gasto.id)}
+                      className={`p-1.5 rounded-lg transition-colors ${
+                        eliminando === gasto.id
+                          ? 'text-red-400 bg-red-500/10 animate-pulse'
+                          : 'text-slate-400 hover:text-red-400 hover:bg-red-500/10'
+                      }`}
+                      title={eliminando === gasto.id ? 'Hacé clic de nuevo para confirmar' : 'Eliminar'}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Modal */}
+      {modal && (
+        <GastoModal
+          gasto={modal.gasto}
+          miembros={esFamiliar ? miembros : []}
+          miembroDefault={miMiembro}
+          onSave={modal.mode === 'crear'
+            ? (data) => agregarGasto(data)
+            : (data) => actualizarGasto(modal.gasto.id, data)
+          }
+          onClose={() => setModal(null)}
+        />
+      )}
+    </div>
+  )
+}

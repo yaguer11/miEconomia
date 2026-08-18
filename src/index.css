@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Inter', sans-serif;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #0a0f1e;
+    color: #e2e8f0;
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0f172a;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 3px;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .glass-light {
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(148, 163, 184, 0.08);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-green {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+
+  .gradient-red {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+  }
+
+  .gradient-purple {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  }
+
+  .gradient-blue {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+  }
+
+  .card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  }
+}
