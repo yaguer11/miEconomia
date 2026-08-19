@@ -13,9 +13,9 @@ export default defineConfig({
       includeAssets: ['pwa-192x192.svg', 'pwa-512x512.svg'],
       manifest: {
         name: 'Mis Gastos y Ahorros',
-        short_name: 'Economía',
+        short_name: 'Mi Economía',
         description: 'Aplicación para gestionar gastos y ahorros',
-        theme_color: '#10b981',
+        theme_color: '#8b5cf6',
         background_color: '#ffffff',
         display: 'standalone',
         icons: [

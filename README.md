@@ -1,4 +1,4 @@
-# MiEconomía 
+# Mi Economía 
 
 Aplicación web Full-Stack para gestionar y visualizar finanzas personales (gastos y ahorros).
 

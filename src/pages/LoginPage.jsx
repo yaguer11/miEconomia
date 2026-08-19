@@ -129,7 +129,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-purple shadow-2xl shadow-indigo-500/40 mb-4">
             <Wallet size={28} className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold gradient-text mb-1">MiEconomía</h1>
+          <h1 className="text-3xl font-bold gradient-text mb-1">Mi Economía</h1>
           <p className="text-slate-400 text-sm">Tu control financiero personal</p>
         </div>
 

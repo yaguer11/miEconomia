@@ -81,7 +81,7 @@ export default function Sidebar() {
             <Wallet size={16} className="text-white" />
           </div>
           <div>
-            <span className="text-white font-bold text-sm">MiEconomía</span>
+            <span className="text-white font-bold text-sm">Mi Economía</span>
             {esFamiliar && (
               <p className="text-xs text-emerald-400 leading-none mt-0.5">👨‍👩‍👧 Familiar</p>
             )}
