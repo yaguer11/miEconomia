@@ -92,7 +92,7 @@ export default function GastosPage() {
       </div>
 
       {/* Navegador de mes + ViewMode selector */}
-      <div className="glass rounded-2xl p-5 mb-6 space-y-4">
+      <div className="glass rounded-2xl p-4 sm:p-5 mb-6 space-y-3 sm:space-y-4">
         <div className="flex items-center justify-between">
           <button id="prev-mes" onClick={prevMes}
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
@@ -100,7 +100,7 @@ export default function GastosPage() {
           </button>
           <div className="text-center">
             <p className="text-white font-bold text-lg">{MESES[mes - 1]} {anio}</p>
-            <p className="text-slate-400 text-sm">{gastos.length} gastos registrados</p>
+            <p className="text-slate-400 text-sm hidden sm:block">{gastos.length} gastos registrados</p>
           </div>
           <button id="next-mes" onClick={nextMes}
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
@@ -129,7 +129,7 @@ export default function GastosPage() {
         </p>
 
         {cotizacionMEP && (
-          <p className="text-xs text-slate-500 text-center">
+          <p className="text-xs text-slate-500 text-center hidden sm:block">
             💹 MEP: {formatARS(cotizacionMEP.venta)}
             {tiempoActualizacion !== null && <span className="ml-2">(hace {tiempoActualizacion} min)</span>}
           </p>

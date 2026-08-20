@@ -176,7 +176,7 @@ export default function DashboardPage() {
               </span>
             )}
             {tiempoActualizacion !== null && (
-              <span className="text-slate-500 text-xs">
+              <span className="text-slate-500 text-xs hidden sm:inline">
                 (hace {tiempoActualizacion === 0 ? 'menos de 1' : tiempoActualizacion} min)
               </span>
             )}
