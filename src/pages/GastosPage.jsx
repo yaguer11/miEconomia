@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Filter } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Filter, Search, X } from 'lucide-react'
 import { useGastos } from '../hooks/useGastos'
 import { useProfile } from '../contexts/ProfileContext'
 import { useCurrency, VIEW_MODES } from '../contexts/CurrencyContext'
@@ -12,6 +12,8 @@ export default function GastosPage() {
   const [mes, setMes] = useState(now.getMonth() + 1)
   const [anio, setAnio] = useState(now.getFullYear())
   const [filtroCategoriaId, setFiltroCategoriaId] = useState('todas')
+  const [busqueda, setBusqueda] = useState('')
+  const [visibles, setVisibles] = useState(10)
   const [modal, setModal] = useState(null)
   const [eliminando, setEliminando] = useState(null)
 
@@ -30,12 +32,42 @@ export default function GastosPage() {
     else setMes(m => m + 1)
   }
 
-  // Filtro: por categoria_id (nuevo) o sin categoría ('sin_cat')
-  const gastosFiltrados = filtroCategoriaId === 'todas'
-    ? gastos
-    : filtroCategoriaId === 'sin_cat'
-      ? gastos.filter(g => !g.categoria_id)
-      : gastos.filter(g => g.categoria_id === filtroCategoriaId)
+  // Filtro: por categoria_id (nuevo) o sin categoría ('sin_cat') + búsqueda
+  const gastosFiltrados = useMemo(() => {
+    let lista = gastos
+    // Ordenar del más reciente al más antiguo (ya viene del hook, pero garantizamos)
+    lista = [...lista].sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+    // Filtro por categoría
+    if (filtroCategoriaId !== 'todas') {
+      lista = filtroCategoriaId === 'sin_cat'
+        ? lista.filter(g => !g.categoria_id)
+        : lista.filter(g => g.categoria_id === filtroCategoriaId)
+    }
+    // Filtro por búsqueda
+    if (busqueda.trim()) {
+      const q = busqueda.toLowerCase().trim()
+      lista = lista.filter(g => {
+        const desc = (g.descripcion || '').toLowerCase()
+        const catNombre = (g.categoria_obj?.nombre || g.categoria || '').toLowerCase()
+        const subcatNombre = (g.subcategoria_obj?.nombre || '').toLowerCase()
+        return desc.includes(q) || catNombre.includes(q) || subcatNombre.includes(q)
+      })
+    }
+    return lista
+  }, [gastos, filtroCategoriaId, busqueda])
+
+  // Reset visibles al cambiar filtros
+  const handleSetFiltroCategoria = (id) => {
+    setFiltroCategoriaId(id)
+    setVisibles(10)
+  }
+  const handleBusqueda = (val) => {
+    setBusqueda(val)
+    setVisibles(10)
+  }
+
+  const gastosVisibles = gastosFiltrados.slice(0, visibles)
+  const hayMas = gastosFiltrados.length > visibles
 
   const totalEnModo = sumInMode(gastosFiltrados.map(g => ({ monto: g.monto, moneda: g.moneda || 'ARS' })))
 
@@ -149,7 +181,7 @@ export default function GastosPage() {
           </p>
         </div>
         {topCategoria && (
-          <div className="glass rounded-2xl p-4 col-span-2 md:col-span-1">
+          <div className="hidden md:block glass rounded-2xl p-4 col-span-2 md:col-span-1">
             <p className="text-slate-400 text-xs mb-1">Mayor categoría</p>
             <div className="flex items-center gap-2">
               <span className="text-lg">{topCategoria.emoji}</span>
@@ -162,10 +194,32 @@ export default function GastosPage() {
         )}
       </div>
 
+      {/* Buscador */}
+      <div className="relative mb-4">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <input
+          id="buscador-gastos"
+          type="text"
+          placeholder="Buscar por descripción o categoría…"
+          value={busqueda}
+          onChange={e => handleBusqueda(e.target.value)}
+          className="w-full bg-slate-800/60 border border-slate-700/50 rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:bg-slate-800/80 transition-all"
+        />
+        {busqueda && (
+          <button
+            onClick={() => handleBusqueda('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+            aria-label="Limpiar búsqueda"
+          >
+            <X size={15} />
+          </button>
+        )}
+      </div>
+
       {/* Filtro categorías */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
         <Filter size={14} className="text-slate-400 flex-shrink-0" />
-        <button id="filtro-todas" onClick={() => setFiltroCategoriaId('todas')}
+        <button id="filtro-todas" onClick={() => handleSetFiltroCategoria('todas')}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 transition-all ${
             filtroCategoriaId === 'todas' ? 'gradient-purple text-white' : 'glass-light text-slate-400 hover:text-white'
           }`}>
@@ -174,7 +228,7 @@ export default function GastosPage() {
 
         {categoriasPresentes.map(cat => (
           <button key={cat.id} id={`filtro-${cat.id}`}
-            onClick={() => setFiltroCategoriaId(cat.id)}
+            onClick={() => handleSetFiltroCategoria(cat.id)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 transition-all flex items-center gap-1 ${
               filtroCategoriaId === cat.id ? 'text-white border border-current' : 'glass-light text-slate-400 hover:text-white'
             }`}
@@ -184,7 +238,7 @@ export default function GastosPage() {
         ))}
 
         {haySinCategoria && (
-          <button id="filtro-sin-cat" onClick={() => setFiltroCategoriaId('sin_cat')}
+          <button id="filtro-sin-cat" onClick={() => handleSetFiltroCategoria('sin_cat')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 transition-all flex items-center gap-1 ${
               filtroCategoriaId === 'sin_cat' ? 'bg-slate-700 text-slate-200 border border-slate-500' : 'glass-light text-slate-500 hover:text-white'
             }`}>
@@ -200,15 +254,20 @@ export default function GastosPage() {
         </div>
       ) : gastosFiltrados.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
-          <p className="text-4xl mb-3">💸</p>
-          <p className="text-slate-300 font-medium">No hay gastos registrados</p>
+          <p className="text-4xl mb-3">{busqueda ? '🔍' : '💸'}</p>
+          <p className="text-slate-300 font-medium">
+            {busqueda ? `Sin resultados para "${busqueda}"` : 'No hay gastos registrados'}
+          </p>
           <p className="text-slate-500 text-sm mt-1">
-            {filtroCategoriaId !== 'todas' ? 'Probá con otra categoría' : 'Agregá tu primer gasto del mes'}
+            {busqueda
+              ? 'Probá con otra descripción o categoría'
+              : filtroCategoriaId !== 'todas' ? 'Probá con otra categoría' : 'Agregá tu primer gasto del mes'
+            }
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {gastosFiltrados.map((gasto) => {
+          {gastosVisibles.map((gasto) => {
             const cat = gasto.categoria_obj  // del join (puede ser null para históricos)
             // Fallback para gastos históricos con campo texto
             const legacyCat = !cat && gasto.categoria
@@ -292,6 +351,25 @@ export default function GastosPage() {
               </div>
             )
           })}
+
+          {/* Botón cargar más */}
+          {hayMas && (
+            <button
+              id="cargar-mas-gastos"
+              onClick={() => setVisibles(v => v + 10)}
+              className="w-full mt-2 py-3 rounded-2xl glass border border-slate-700/40 text-slate-400 hover:text-white hover:border-indigo-500/40 hover:bg-indigo-500/5 text-sm font-medium transition-all flex items-center justify-center gap-2"
+            >
+              <span>Cargar más</span>
+              <span className="text-xs text-slate-500">({gastosFiltrados.length - visibles} restantes)</span>
+            </button>
+          )}
+
+          {/* Indicador total */}
+          {gastosFiltrados.length > 0 && (
+            <p className="text-center text-xs text-slate-600 pt-1">
+              Mostrando {Math.min(visibles, gastosFiltrados.length)} de {gastosFiltrados.length} gastos
+            </p>
+          )}
         </div>
       )}
 
