@@ -69,7 +69,8 @@ export default function GastosPage() {
   const gastosVisibles = gastosFiltrados.slice(0, visibles)
   const hayMas = gastosFiltrados.length > visibles
 
-  const totalEnModo = sumInMode(gastosFiltrados.map(g => ({ monto: g.monto, moneda: g.moneda || 'ARS' })))
+  // Las métricas siempre reflejan el total real del mes, sin importar búsqueda o filtro de categoría
+  const totalEnModo = sumInMode(gastos.map(g => ({ monto: g.monto, moneda: g.moneda || 'ARS' })))
 
   const handleEliminar = async (id) => {
     if (eliminando === id) {
@@ -176,8 +177,8 @@ export default function GastosPage() {
         </div>
         <div className="glass rounded-2xl p-4 overflow-hidden">
           <p className="text-slate-400 text-xs mb-1 truncate">Promedio diario</p>
-          <p className="text-white font-bold text-xl truncate" title={formatInMode(gastosFiltrados.length > 0 ? totalEnModo / new Date(anio, mes, 0).getDate() : 0)}>
-            {formatInMode(gastosFiltrados.length > 0 ? totalEnModo / new Date(anio, mes, 0).getDate() : 0)}
+          <p className="text-white font-bold text-xl truncate" title={formatInMode(gastos.length > 0 ? totalEnModo / new Date(anio, mes, 0).getDate() : 0)}>
+            {formatInMode(gastos.length > 0 ? totalEnModo / new Date(anio, mes, 0).getDate() : 0)}
           </p>
         </div>
         {topCategoria && (
