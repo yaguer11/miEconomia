@@ -103,20 +103,24 @@ function ObjetivoCard({ objetivo, onAgregar, onUsarAhorro, onEliminar, onEditar,
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               id={`agregar-deposito-${objetivo.nombre}`}
               onClick={() => onAgregar(objetivo)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium gradient-green text-white hover:opacity-90 transition-opacity"
+              className="flex items-center justify-center gap-1 px-2.5 py-1.5 md:px-3 rounded-lg text-xs font-medium gradient-green text-white hover:opacity-90 transition-opacity"
+              title="Depositar"
             >
-              <Plus size={12} /> Depositar
+              <Plus size={13} />
+              <span className="hidden md:inline">Depositar</span>
             </button>
             <button
               id={`usar-ahorro-${objetivo.nombre}`}
               onClick={() => onUsarAhorro(objetivo)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/15 border border-red-500/30 text-red-400 hover:bg-red-500/25 hover:text-red-300 transition-all"
+              className="flex items-center justify-center gap-1 px-2.5 py-1.5 md:px-3 rounded-lg text-xs font-medium bg-red-500/15 border border-red-500/30 text-red-400 hover:bg-red-500/25 hover:text-red-300 transition-all"
+              title="Usar ahorro"
             >
-              <TrendingDown size={12} /> Usar ahorro
+              <TrendingDown size={13} />
+              <span className="hidden md:inline">Usar ahorro</span>
             </button>
           </div>
         </div>
