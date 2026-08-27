@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Plus, Trash2, ChevronDown, ChevronUp, Pencil } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronUp, Pencil, TrendingDown } from 'lucide-react'
 import { useAhorros } from '../hooks/useAhorros'
 import { useCurrency, VIEW_MODES } from '../contexts/CurrencyContext'
 import AhorroModal from '../components/AhorroModal'
+import RetiroModal from '../components/RetiroModal'
 import { formatDate } from '../lib/constants'
 
 function ProgressBar({ porcentaje, color = '#10b981' }) {
@@ -17,7 +18,7 @@ function ProgressBar({ porcentaje, color = '#10b981' }) {
   )
 }
 
-function ObjetivoCard({ objetivo, onAgregar, onEliminar, onEditar, onActualizarProyeccion, currency }) {
+function ObjetivoCard({ objetivo, onAgregar, onUsarAhorro, onEliminar, onEditar, onActualizarProyeccion, currency }) {
   const [expanded, setExpanded] = useState(false)
   const [eliminando, setEliminando] = useState(null)
   const [editandoProy, setEditandoProy] = useState(false)
@@ -102,13 +103,22 @@ function ObjetivoCard({ objetivo, onAgregar, onEliminar, onEditar, onActualizarP
               </div>
             </div>
           </div>
-          <button
-            id={`agregar-deposito-${objetivo.nombre}`}
-            onClick={() => onAgregar(objetivo)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium gradient-green text-white hover:opacity-90 transition-opacity"
-          >
-            <Plus size={12} /> Depositar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              id={`agregar-deposito-${objetivo.nombre}`}
+              onClick={() => onAgregar(objetivo)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium gradient-green text-white hover:opacity-90 transition-opacity"
+            >
+              <Plus size={12} /> Depositar
+            </button>
+            <button
+              id={`usar-ahorro-${objetivo.nombre}`}
+              onClick={() => onUsarAhorro(objetivo)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/15 border border-red-500/30 text-red-400 hover:bg-red-500/25 hover:text-red-300 transition-all"
+            >
+              <TrendingDown size={12} /> Usar ahorro
+            </button>
+          </div>
         </div>
 
         <div className="flex items-end justify-between mb-2">
@@ -269,48 +279,60 @@ function ObjetivoCard({ objetivo, onAgregar, onEliminar, onEditar, onActualizarP
                 </div>
               )}
 
-              {/* Lista de depósitos */}
+              {/* Lista de depositos y retiros */}
               <div className="space-y-2">
-                {objetivo.depositos.map(dep => (
-                <div key={dep.id} className="glass-light rounded-xl p-2.5 md:p-3 flex items-center gap-2.5 md:gap-3 group">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">
-                      {dep.descripcion || 'Depósito'}
-                    </p>
-                    <p className="text-slate-500 text-xs">{formatDate(dep.fecha)}</p>
+                {objetivo.depositos.map(dep => {
+                  const esRetiro = dep.tipo === 'retiro'
+                  return (
+                  <div key={dep.id} className="glass-light rounded-xl p-2.5 md:p-3 flex items-center gap-2.5 md:gap-3 group">
+                    {/* Indicador deposito / retiro */}
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                      esRetiro ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'
+                    }`}>
+                      {esRetiro ? '−' : '+'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium truncate">
+                        {dep.descripcion || (esRetiro ? 'Retiro' : 'Deposito')}
+                      </p>
+                      <p className="text-slate-500 text-xs">{formatDate(dep.fecha)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold text-sm ${esRetiro ? 'text-red-400' : 'text-emerald-400'}`}>
+                        {esRetiro ? '− ' : '+ '}
+                        {dep.moneda === 'USD' ? formatUSD(dep.monto) : formatARS(dep.monto)}
+                      </p>
+                      {dep.moneda === 'USD' && cotizacionMEP && (
+                        <p className="text-slate-500 text-xs">≈ {formatARS(dep.monto * cotizacionMEP.venta)}</p>
+                      )}
+                    </div>
+                    <span className={`text-xs px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${
+                      (dep.moneda || 'ARS') === 'USD'
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-sky-500/20 text-sky-400'
+                    }`}>
+                      {dep.moneda || 'ARS'}
+                    </span>
+                    <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!esRetiro && (
+                        <button id={`edit-ahorro-${dep.id}`} onClick={() => onEditar(dep)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors">
+                          <Pencil size={13} />
+                        </button>
+                      )}
+                      <button id={`delete-ahorro-${dep.id}`} onClick={() => handleEliminar(dep.id)}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          eliminando === dep.id
+                            ? 'text-red-400 bg-red-500/10 animate-pulse'
+                            : 'text-slate-400 hover:text-red-400 hover:bg-red-500/10'
+                        }`}
+                        title={eliminando === dep.id ? 'Clic para confirmar' : 'Eliminar'}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-emerald-400 font-bold text-sm">
-                      {dep.moneda === 'USD' ? formatUSD(dep.monto) : formatARS(dep.monto)}
-                    </p>
-                    {dep.moneda === 'USD' && cotizacionMEP && (
-                      <p className="text-slate-500 text-xs">≈ {formatARS(dep.monto * cotizacionMEP.venta)}</p>
-                    )}
-                  </div>
-                  <span className={`text-xs px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${
-                    (dep.moneda || 'ARS') === 'USD'
-                      ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-sky-500/20 text-sky-400'
-                  }`}>
-                    {dep.moneda || 'ARS'}
-                  </span>
-                  <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button id={`edit-ahorro-${dep.id}`} onClick={() => onEditar(dep)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors">
-                      <Pencil size={13} />
-                    </button>
-                    <button id={`delete-ahorro-${dep.id}`} onClick={() => handleEliminar(dep.id)}
-                      className={`p-1.5 rounded-lg transition-colors ${
-                        eliminando === dep.id
-                          ? 'text-red-400 bg-red-500/10 animate-pulse'
-                          : 'text-slate-400 hover:text-red-400 hover:bg-red-500/10'
-                      }`}
-                      title={eliminando === dep.id ? 'Clic para confirmar' : 'Eliminar'}>
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -321,8 +343,9 @@ function ObjetivoCard({ objetivo, onAgregar, onEliminar, onEditar, onActualizarP
 }
 
 export default function AhorrosPage() {
-  const { ahorros, objetivos, loading, totalAhorradoARS, totalAhorradoUSD, agregarAhorro, actualizarAhorro, eliminarAhorro, actualizarProyeccionObjetivo } = useAhorros()
+  const { ahorros, objetivos, loading, totalAhorradoARS, totalAhorradoUSD, agregarAhorro, actualizarAhorro, eliminarAhorro, agregarRetiro, actualizarProyeccionObjetivo } = useAhorros()
   const [modal, setModal] = useState(null)
+  const [retiroModal, setRetiroModal] = useState(null)
   const currency = useCurrency()
   const { viewMode, setViewMode, formatARS, formatUSD, formatInMode, sumInMode, cotizacionMEP, tiempoActualizacion } = currency
 
@@ -336,6 +359,10 @@ export default function AhorrosPage() {
         moneda_meta: objetivo.moneda_meta || 'ARS',
       }
     })
+  }
+
+  const handleUsarAhorro = (objetivo) => {
+    setRetiroModal(objetivo)
   }
 
   // Total unificado según modo
@@ -439,6 +466,7 @@ export default function AhorrosPage() {
               key={objetivo.nombre}
               objetivo={objetivo}
               onAgregar={handleAgregarDeposito}
+              onUsarAhorro={handleUsarAhorro}
               onEliminar={eliminarAhorro}
               onEditar={(dep) => setModal({ mode: 'editar', ahorro: dep })}
               onActualizarProyeccion={actualizarProyeccionObjetivo}
@@ -458,6 +486,14 @@ export default function AhorrosPage() {
             : (data) => actualizarAhorro(modal.ahorro.id, data)
           }
           onClose={() => setModal(null)}
+        />
+      )}
+
+      {retiroModal && (
+        <RetiroModal
+          objetivo={retiroModal}
+          onSave={(data) => agregarRetiro(data)}
+          onClose={() => setRetiroModal(null)}
         />
       )}
     </div>
