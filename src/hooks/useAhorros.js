@@ -120,6 +120,30 @@ export function useAhorros() {
     ))
   }
 
+  const actualizarObjetivo = async (nombreAntiguo, nuevosDatos) => {
+    let query = supabase
+      .from('ahorros')
+      .update({
+        objetivo: nuevosDatos.nombre,
+        emoji: nuevosDatos.emoji,
+        meta: nuevosDatos.meta,
+        moneda_meta: nuevosDatos.moneda_meta
+      })
+      .eq('objetivo', nombreAntiguo)
+
+    if (esFamiliar && perfil?.familia_id) {
+      query = query.eq('familia_id', perfil.familia_id)
+    } else {
+      query = query.eq('user_id', user.id).is('familia_id', null)
+    }
+
+    const { error } = await query
+    if (error) throw error
+    
+    // Refrescar para que agrupe correctamente con el nuevo nombre y actualice UI
+    await fetchAhorros()
+  }
+
   // Agrupar por objetivo — incluye info de moneda de depositos y meta
   // Los retiros (tipo='retiro') descuentan del total
   const objetivos = Object.values(
@@ -163,6 +187,6 @@ export function useAhorros() {
   return {
     ahorros, objetivos, loading, error,
     totalAhorrado, totalAhorradoARS, totalAhorradoUSD,
-    agregarAhorro, actualizarAhorro, eliminarAhorro, agregarRetiro, actualizarProyeccionObjetivo, refetch: fetchAhorros
+    agregarAhorro, actualizarAhorro, eliminarAhorro, agregarRetiro, actualizarProyeccionObjetivo, actualizarObjetivo, refetch: fetchAhorros
   }
 }

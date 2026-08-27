@@ -4,6 +4,7 @@ import { useAhorros } from '../hooks/useAhorros'
 import { useCurrency, VIEW_MODES } from '../contexts/CurrencyContext'
 import AhorroModal from '../components/AhorroModal'
 import RetiroModal from '../components/RetiroModal'
+import EditarObjetivoModal from '../components/EditarObjetivoModal'
 import { formatDate } from '../lib/constants'
 
 function ProgressBar({ porcentaje, color = '#10b981' }) {
@@ -18,7 +19,7 @@ function ProgressBar({ porcentaje, color = '#10b981' }) {
   )
 }
 
-function ObjetivoCard({ objetivo, onAgregar, onUsarAhorro, onEliminar, onEditar, onActualizarProyeccion, currency }) {
+function ObjetivoCard({ objetivo, onAgregar, onUsarAhorro, onEliminar, onEditar, onEditarObjetivo, onActualizarProyeccion, currency }) {
   const [expanded, setExpanded] = useState(false)
   const [eliminando, setEliminando] = useState(null)
   const [editandoProy, setEditandoProy] = useState(false)
@@ -103,24 +104,31 @@ function ObjetivoCard({ objetivo, onAgregar, onUsarAhorro, onEliminar, onEditar,
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               id={`agregar-deposito-${objetivo.nombre}`}
               onClick={() => onAgregar(objetivo)}
-              className="flex items-center justify-center gap-1 px-2.5 py-1.5 md:px-3 rounded-lg text-xs font-medium gradient-green text-white hover:opacity-90 transition-opacity"
+              className="flex items-center justify-center gap-1.5 px-2.5 md:px-3 h-8 rounded-lg text-xs font-medium gradient-green text-white hover:opacity-90 transition-opacity whitespace-nowrap"
               title="Depositar"
             >
               <Plus size={13} />
               <span className="hidden md:inline">Depositar</span>
             </button>
             <button
+              id={`editar-objetivo-${objetivo.nombre}`}
+              onClick={() => onEditarObjetivo(objetivo)}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all shrink-0"
+              title="Editar objetivo"
+            >
+              <Pencil size={13} />
+            </button>
+            <button
               id={`usar-ahorro-${objetivo.nombre}`}
               onClick={() => onUsarAhorro(objetivo)}
-              className="flex items-center justify-center gap-1 px-2.5 py-1.5 md:px-3 rounded-lg text-xs font-medium bg-red-500/15 border border-red-500/30 text-red-400 hover:bg-red-500/25 hover:text-red-300 transition-all"
-              title="Usar ahorro"
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 hover:bg-red-500/25 hover:text-red-300 transition-all shrink-0"
+              title="Retirar ahorro"
             >
               <TrendingDown size={13} />
-              <span className="hidden md:inline">Usar ahorro</span>
             </button>
           </div>
         </div>
@@ -347,9 +355,10 @@ function ObjetivoCard({ objetivo, onAgregar, onUsarAhorro, onEliminar, onEditar,
 }
 
 export default function AhorrosPage() {
-  const { ahorros, objetivos, loading, totalAhorradoARS, totalAhorradoUSD, agregarAhorro, actualizarAhorro, eliminarAhorro, agregarRetiro, actualizarProyeccionObjetivo } = useAhorros()
+  const { ahorros, objetivos, loading, totalAhorradoARS, totalAhorradoUSD, agregarAhorro, actualizarAhorro, eliminarAhorro, agregarRetiro, actualizarProyeccionObjetivo, actualizarObjetivo } = useAhorros()
   const [modal, setModal] = useState(null)
   const [retiroModal, setRetiroModal] = useState(null)
+  const [modalObjetivo, setModalObjetivo] = useState(null)
   const currency = useCurrency()
   const { viewMode, setViewMode, formatARS, formatUSD, formatInMode, sumInMode, cotizacionMEP, tiempoActualizacion } = currency
 
@@ -473,6 +482,7 @@ export default function AhorrosPage() {
               onUsarAhorro={handleUsarAhorro}
               onEliminar={eliminarAhorro}
               onEditar={(dep) => setModal({ mode: 'editar', ahorro: dep })}
+              onEditarObjetivo={(obj) => setModalObjetivo(obj)}
               onActualizarProyeccion={actualizarProyeccionObjetivo}
               currency={currency}
             />
@@ -498,6 +508,17 @@ export default function AhorrosPage() {
           objetivo={retiroModal}
           onSave={(data) => agregarRetiro(data)}
           onClose={() => setRetiroModal(null)}
+        />
+      )}
+
+      {modalObjetivo && (
+        <EditarObjetivoModal
+          objetivo={modalObjetivo}
+          onSave={async (nuevosDatos) => {
+            await actualizarObjetivo(modalObjetivo.nombre, nuevosDatos)
+            setModalObjetivo(null)
+          }}
+          onClose={() => setModalObjetivo(null)}
         />
       )}
     </div>
