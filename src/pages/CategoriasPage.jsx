@@ -182,7 +182,10 @@ function CategoriaCard({ cat, onEdit, onDelete, onAddSub, onEditSub, onDeleteSub
   return (
     <div className="glass rounded-2xl overflow-hidden">
       {/* Header de categoría */}
-      <div className="p-4 flex items-center gap-3">
+      <div
+        className="p-4 flex items-center gap-3 cursor-pointer"
+        onClick={(e) => { if (!e.target.closest('button')) setExpanded(!expanded) }}
+      >
         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
           style={{ background: cat.color + '25', border: `2px solid ${cat.color}60` }}>
           {cat.emoji}
@@ -218,7 +221,7 @@ function CategoriaCard({ cat, onEdit, onDelete, onAddSub, onEditSub, onDeleteSub
             {cat.subcategorias.map(sub => (
               <div key={sub.id} className="group flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-slate-300 bg-slate-800/50 border border-slate-700/40">
                 <span>{sub.nombre}</span>
-                <div className="hidden group-hover:flex items-center gap-0.5 ml-1">
+                <div className="flex items-center gap-0.5 ml-1">
                   <button id={`edit-sub-${sub.id}`} onClick={() => onEditSub(cat, sub)}
                     className="text-slate-500 hover:text-indigo-400 transition-colors p-0.5">
                     <Pencil size={10} />
