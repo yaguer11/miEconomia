@@ -15,6 +15,7 @@ export default function GastosPage() {
   const [busqueda, setBusqueda] = useState('')
   const [visibles, setVisibles] = useState(10)
   const [modal, setModal] = useState(null)
+  const [detalle, setDetalle] = useState(null)
   const [eliminando, setEliminando] = useState(null)
 
   const { gastos, loading, agregarGasto, actualizarGasto, eliminarGasto } = useGastos(mes, anio)
@@ -278,7 +279,12 @@ export default function GastosPage() {
 
             return (
               <div key={gasto.id}
-                className="glass rounded-2xl p-3 md:p-4 card-hover flex items-center gap-3 md:gap-4 group">
+                className="glass rounded-2xl p-3 md:p-4 card-hover flex items-center gap-3 md:gap-4 group cursor-pointer"
+                onClick={(e) => {
+                  // No abrir detalle si se clickea editar/eliminar
+                  if (e.target.closest('button')) return
+                  setDetalle(gasto)
+                }}>
                 {/* Icono categoría */}
                 <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl flex items-center justify-center text-lg md:text-xl flex-shrink-0"
                   style={displayCat
@@ -374,7 +380,7 @@ export default function GastosPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal editar/crear */}
       {modal && (
         <GastoModal
           gasto={modal.gasto}
@@ -387,6 +393,145 @@ export default function GastosPage() {
           onClose={() => setModal(null)}
         />
       )}
+
+      {/* Modal detalle gasto */}
+      {detalle && (() => {
+        const g = detalle
+        const cat = g.categoria_obj
+        const legacyCat = !cat && g.categoria ? getCategoriaById(g.categoria) : null
+        const displayCat = cat || legacyCat
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            onClick={() => setDetalle(null)}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+            {/* Panel */}
+            <div
+              className="relative w-full sm:max-w-md bg-slate-900 border border-slate-700/60 rounded-t-3xl sm:rounded-2xl p-6 pb-8 sm:pb-6 shadow-2xl"
+              style={{ animation: 'slideUpSheet 0.25s cubic-bezier(0.32,0.72,0,1)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Handle bar móvil */}
+              <div className="w-10 h-1 bg-slate-700 rounded-full mx-auto mb-5 sm:hidden" />
+
+              {/* Header del detalle */}
+              <div className="flex items-start gap-4 mb-5">
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+                  style={displayCat
+                    ? { background: displayCat.color + '25', border: `1.5px solid ${displayCat.color}50` }
+                    : { background: '#64748b20', border: '1.5px solid #64748b40' }
+                  }
+                >
+                  {displayCat ? displayCat.emoji : '📦'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-bold text-base leading-tight">
+                    {g.descripcion || displayCat?.nombre || 'Sin descripción'}
+                  </p>
+                  <p className="text-slate-400 text-sm mt-0.5">
+                    {displayCat?.nombre || 'Sin categoría'}
+                    {g.subcategoria_obj && <span className="text-slate-500"> · {g.subcategoria_obj.nombre}</span>}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setDetalle(null)}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-colors flex-shrink-0"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Info grid */}
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                {/* Monto */}
+                <div className="col-span-2 bg-slate-800/60 rounded-xl p-3 flex items-center justify-between">
+                  <span className="text-slate-400 text-xs">Monto</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-400 font-bold text-lg">
+                      {g.moneda === 'USD' ? formatUSD(g.monto) : formatARS(g.monto)}
+                    </span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${
+                      (g.moneda || 'ARS') === 'USD' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-sky-500/20 text-sky-400'
+                    }`}>
+                      {g.moneda || 'ARS'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Equivalente si USD */}
+                {g.moneda === 'USD' && cotizacionMEP && (
+                  <div className="col-span-2 bg-slate-800/40 rounded-xl p-3 flex items-center justify-between">
+                    <span className="text-slate-400 text-xs">Equivalente ARS</span>
+                    <span className="text-slate-300 font-medium text-sm">
+                      ≈ {formatARS(Number(g.monto) * cotizacionMEP.venta)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Fecha */}
+                <div className="bg-slate-800/60 rounded-xl p-3">
+                  <p className="text-slate-400 text-xs mb-1">Fecha</p>
+                  <p className="text-white text-sm font-medium">{formatDate(g.fecha)}</p>
+                </div>
+
+                {/* Categoría */}
+                <div className="bg-slate-800/60 rounded-xl p-3">
+                  <p className="text-slate-400 text-xs mb-1">Categoría</p>
+                  {displayCat ? (
+                    <span
+                      className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={{ background: displayCat.color + '20', color: displayCat.color }}
+                    >
+                      {displayCat.emoji} {displayCat.nombre || displayCat.label}
+                    </span>
+                  ) : (
+                    <p className="text-slate-500 text-sm">Sin categoría</p>
+                  )}
+                </div>
+
+                {/* Subcategoría */}
+                {g.subcategoria_obj && (
+                  <div className="bg-slate-800/60 rounded-xl p-3">
+                    <p className="text-slate-400 text-xs mb-1">Subcategoría</p>
+                    <p className="text-white text-sm">{g.subcategoria_obj.nombre}</p>
+                  </div>
+                )}
+
+                {/* Miembro */}
+                {esFamiliar && g.miembro && (
+                  <div className="bg-slate-800/60 rounded-xl p-3">
+                    <p className="text-slate-400 text-xs mb-1">Miembro</p>
+                    <div className="flex items-center gap-1.5">
+                      <span>{g.miembro.avatar_emoji}</span>
+                      <span className="text-white text-sm truncate">{g.miembro.nombre_display}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Acciones */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setDetalle(null); setModal({ mode: 'editar', gasto: g }) }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 transition-all text-sm font-medium"
+                >
+                  <Pencil size={14} /> Editar
+                </button>
+                <button
+                  onClick={() => { setDetalle(null); handleEliminar(g.id) }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all text-sm font-medium"
+                >
+                  <Trash2 size={14} /> Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

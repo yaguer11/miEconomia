@@ -77,3 +77,27 @@
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   }
 }
+
+@keyframes slideUpSheet {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 640px) {
+  @keyframes slideUpSheet {
+    from {
+      transform: translateY(16px) scale(0.98);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+}
