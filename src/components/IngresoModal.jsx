@@ -48,8 +48,13 @@ function CurrencyToggle({ value, onChange, formatPreview, monto, accentColor = '
 export default function IngresoModal({ ingreso, miembros = [], miembroDefault = null, onSave, onClose }) {
   const { tasaVentaMEP, formatARS } = useCurrency()
 
+  const parseMonto = (val) => {
+    if (!val) return 0
+    return Number(val.toString().replace(/\./g, '').replace(/,/g, '.'))
+  }
+
   const [form, setForm] = useState({
-    monto: ingreso?.monto || '',
+    monto: ingreso?.monto ? Number(ingreso.monto).toLocaleString('es-AR') : '',
     moneda: ingreso?.moneda || 'ARS',
     categoria: ingreso?.categoria || 'salario',
     descripcion: ingreso?.descripcion || '',
@@ -63,18 +68,28 @@ export default function IngresoModal({ ingreso, miembros = [], miembroDefault = 
 
   const esFamiliar = miembros.length > 0
 
-  const previewARS = (montoUSD) => {
+  const previewARS = (montoInput) => {
     if (!tasaVentaMEP) return '—'
-    return formatARS(Number(montoUSD) * tasaVentaMEP)
+    return formatARS(parseMonto(montoInput) * tasaVentaMEP)
+  }
+
+  const handleMontoChange = (e) => {
+    let val = e.target.value.replace(/[^0-9,]/g, '')
+    const parts = val.split(',')
+    if (parts.length > 2) val = parts[0] + ',' + parts.slice(1).join('')
+    const cleanInt = parts[0].replace(/\./g, '')
+    if (cleanInt) parts[0] = Number(cleanInt).toLocaleString('es-AR')
+    setForm({ ...form, monto: parts.join(',') })
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (!form.monto || Number(form.monto) <= 0) { setError('El monto debe ser mayor a 0'); return }
+    const numericMonto = parseMonto(form.monto)
+    if (!numericMonto || numericMonto <= 0) { setError('El monto debe ser mayor a 0'); return }
     setLoading(true)
     try {
-      const payload = { ...form, monto: Number(form.monto) }
+      const payload = { ...form, monto: numericMonto }
       if (!esFamiliar) delete payload.miembro_id
       await onSave(payload)
       onClose()
@@ -101,8 +116,8 @@ export default function IngresoModal({ ingreso, miembros = [], miembroDefault = 
           {/* Monto + Moneda */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Monto</label>
-            <input id="ingreso-monto" type="number" min="0" step="0.01"
-              value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })}
+            <input id="ingreso-monto" type="text" inputMode="decimal"
+              value={form.monto} onChange={handleMontoChange}
               placeholder="0" required
               className="w-full px-4 py-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm transition-all mb-2"
             />
@@ -110,7 +125,7 @@ export default function IngresoModal({ ingreso, miembros = [], miembroDefault = 
               value={form.moneda}
               onChange={(m) => setForm({ ...form, moneda: m })}
               formatPreview={previewARS}
-              monto={form.monto}
+              monto={parseMonto(form.monto)}
               accentColor="emerald"
             />
           </div>

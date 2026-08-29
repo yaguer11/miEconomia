@@ -155,8 +155,13 @@ export default function GastoModal({ gasto, miembros = [], miembroDefault = null
   const { tasaVentaMEP, formatARS } = useCurrency()
   const { categorias, loading: loadingCats } = useCategorias()
 
+  const parseMonto = (val) => {
+    if (!val) return 0
+    return Number(val.toString().replace(/\./g, '').replace(/,/g, '.'))
+  }
+
   const [form, setForm] = useState({
-    monto: gasto?.monto || '',
+    monto: gasto?.monto ? Number(gasto.monto).toLocaleString('es-AR') : '',
     moneda: gasto?.moneda || 'ARS',
     categoria_id: gasto?.categoria_id || null,
     subcategoria_id: gasto?.subcategoria_id || null,
@@ -169,23 +174,33 @@ export default function GastoModal({ gasto, miembros = [], miembroDefault = null
 
   const esFamiliar = miembros.length > 0
 
-  const previewARS = (montoUSD) => {
+  const previewARS = (montoInput) => {
     if (!tasaVentaMEP) return '—'
-    return formatARS(Number(montoUSD) * tasaVentaMEP)
+    return formatARS(parseMonto(montoInput) * tasaVentaMEP)
   }
 
   const handleCategoriaChange = ({ categoriaId, subcategoriaId }) => {
     setForm(f => ({ ...f, categoria_id: categoriaId, subcategoria_id: subcategoriaId }))
   }
 
+  const handleMontoChange = (e) => {
+    let val = e.target.value.replace(/[^0-9,]/g, '')
+    const parts = val.split(',')
+    if (parts.length > 2) val = parts[0] + ',' + parts.slice(1).join('')
+    const cleanInt = parts[0].replace(/\./g, '')
+    if (cleanInt) parts[0] = Number(cleanInt).toLocaleString('es-AR')
+    setForm({ ...form, monto: parts.join(',') })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (!form.monto || Number(form.monto) <= 0) { setError('El monto debe ser mayor a 0'); return }
+    const numericMonto = parseMonto(form.monto)
+    if (!numericMonto || numericMonto <= 0) { setError('El monto debe ser mayor a 0'); return }
     setLoading(true)
     try {
       const payload = {
-        monto: Number(form.monto),
+        monto: numericMonto,
         moneda: form.moneda,
         categoria_id: form.categoria_id || null,
         subcategoria_id: form.subcategoria_id || null,
@@ -221,13 +236,13 @@ export default function GastoModal({ gasto, miembros = [], miembroDefault = null
           {/* Monto + Moneda */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Monto</label>
-            <input id="gasto-monto" type="number" min="0" step="0.01"
-              value={form.monto} onChange={e => setForm({ ...form, monto: e.target.value })}
+            <input id="gasto-monto" type="text" inputMode="decimal"
+              value={form.monto} onChange={handleMontoChange}
               placeholder="0" required
               className="w-full px-4 py-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm transition-all mb-2"
             />
             <CurrencyToggle value={form.moneda} onChange={(m) => setForm({ ...form, moneda: m })}
-              formatPreview={previewARS} monto={form.monto} />
+              formatPreview={previewARS} monto={parseMonto(form.monto)} />
           </div>
 
           {/* Categoría + Subcategoría */}
