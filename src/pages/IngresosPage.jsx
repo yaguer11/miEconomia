@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Filter, TrendingUp } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Filter, TrendingUp, X } from 'lucide-react'
 import { useIngresos } from '../hooks/useIngresos'
 import { useProfile } from '../contexts/ProfileContext'
 import { useCurrency, VIEW_MODES } from '../contexts/CurrencyContext'
 import IngresoModal from '../components/IngresoModal'
+import IngresoDetalleModal from '../components/IngresoDetalleModal'
 import { CATEGORIAS_INGRESOS, getCategIngresosById, formatDate, MESES } from '../lib/constants'
 
 export default function IngresosPage() {
@@ -12,6 +13,7 @@ export default function IngresosPage() {
   const [anio, setAnio] = useState(now.getFullYear())
   const [filtroCategoria, setFiltroCategoria] = useState('todas')
   const [modal, setModal] = useState(null)
+  const [detalle, setDetalle] = useState(null)
   const [eliminando, setEliminando] = useState(null)
 
   const { ingresos, loading, agregarIngreso, actualizarIngreso, eliminarIngreso } = useIngresos(mes, anio)
@@ -187,7 +189,8 @@ export default function IngresosPage() {
             return (
               <div
                 key={ingreso.id}
-                className="glass rounded-2xl p-3 md:p-4 card-hover flex items-center gap-3 md:gap-4 group"
+                className="glass rounded-2xl p-3 md:p-4 card-hover flex items-center gap-3 md:gap-4 group cursor-pointer"
+                onClick={(e) => { if (!e.target.closest('button')) setDetalle(ingreso) }}
               >
                 <div
                   className="w-9 h-9 md:w-11 md:h-11 rounded-xl flex items-center justify-center text-lg md:text-xl flex-shrink-0"
@@ -256,7 +259,7 @@ export default function IngresosPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal editar/crear */}
       {modal && (
         <IngresoModal
           ingreso={modal.ingreso}
@@ -269,6 +272,18 @@ export default function IngresosPage() {
           onClose={() => setModal(null)}
         />
       )}
+
+      {/* Panel detalle ingreso */}
+      <IngresoDetalleModal
+        ingreso={detalle}
+        onClose={() => setDetalle(null)}
+        onEdit={(i) => { setDetalle(null); setModal({ mode: 'editar', ingreso: i }) }}
+        onDelete={(id) => { setDetalle(null); handleEliminar(id) }}
+        esFamiliar={esFamiliar}
+        formatARS={formatARS}
+        formatUSD={formatUSD}
+        cotizacionMEP={cotizacionMEP}
+      />
     </div>
   )
 }
