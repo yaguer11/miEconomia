@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Filter, Search, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, ChevronDown, Filter, Search, X } from 'lucide-react'
 import { useGastos } from '../hooks/useGastos'
 import { useProfile } from '../contexts/ProfileContext'
 import { useCurrency, VIEW_MODES } from '../contexts/CurrencyContext'
@@ -14,6 +14,7 @@ export default function GastosPage() {
   const [filtroCategoriaId, setFiltroCategoriaId] = useState('todas')
   const [busqueda, setBusqueda] = useState('')
   const [visibles, setVisibles] = useState(10)
+  const [vistaAbierta, setVistaAbierta] = useState(false)
   const [modal, setModal] = useState(null)
   const [detalle, setDetalle] = useState(null)
   const [eliminando, setEliminando] = useState(null)
@@ -66,6 +67,10 @@ export default function GastosPage() {
     setBusqueda(val)
     setVisibles(10)
   }
+  const handleSetViewMode = (id) => {
+    setViewMode(id)
+    setVistaAbierta(false)
+  }
 
   const gastosVisibles = gastosFiltrados.slice(0, visibles)
   const hayMas = gastosFiltrados.length > visibles
@@ -113,7 +118,7 @@ export default function GastosPage() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8 gap-4">
+      <div className="flex items-center justify-between mb-5 md:mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">Gastos</h1>
           <p className="text-slate-400 text-sm">Control de tus gastos diarios</p>
@@ -126,7 +131,7 @@ export default function GastosPage() {
       </div>
 
       {/* Navegador de mes + ViewMode selector */}
-      <div className="glass rounded-2xl p-4 sm:p-5 mb-6 space-y-3 sm:space-y-4">
+      <div className="glass rounded-2xl p-3 sm:p-5 mb-4 md:mb-6 space-y-2 sm:space-y-4">
         <div className="flex items-center justify-between">
           <button id="prev-mes" onClick={prevMes}
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
@@ -142,10 +147,25 @@ export default function GastosPage() {
           </button>
         </div>
 
-        <div className="flex gap-2">
+        {/* Trigger compacto — solo mobile */}
+        <button
+          id="toggle-vista-gastos"
+          onClick={() => setVistaAbierta(v => !v)}
+          className="md:hidden w-full flex items-center justify-center gap-1.5 py-0.5 text-xs text-slate-400 hover:text-white transition-colors"
+        >
+          <span>Vista:</span>
+          <span className="text-white font-medium">{VIEW_MODES.find(m => m.id === viewMode)?.label}</span>
+          <ChevronDown
+            size={13}
+            className={`transition-transform duration-200 ${vistaAbierta ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {/* Fila de botones: siempre en desktop, condicional en mobile */}
+        <div className={`gap-2 ${vistaAbierta ? 'flex' : 'hidden'} md:flex`}>
           {VIEW_MODES.map(mode => (
             <button key={mode.id} id={`view-mode-gastos-${mode.id}`}
-              onClick={() => setViewMode(mode.id)}
+              onClick={() => handleSetViewMode(mode.id)}
               className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center ${
                 viewMode === mode.id
                   ? 'bg-indigo-500/20 border border-indigo-500/50 text-indigo-300'
@@ -156,11 +176,6 @@ export default function GastosPage() {
             </button>
           ))}
         </div>
-        
-        {/* Descripción del modo activo en móvil */}
-        <p className="md:hidden text-center text-xs text-slate-400 mt-3">
-          Vista: <span className="text-white font-medium">{VIEW_MODES.find(m => m.id === viewMode)?.label}</span>
-        </p>
 
         {cotizacionMEP && (
           <p className="text-xs text-slate-500 text-center hidden sm:block">

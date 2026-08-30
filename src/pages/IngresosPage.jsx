@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Filter, TrendingUp, X } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight, ChevronDown, Filter, TrendingUp, Search, X } from 'lucide-react'
 import { useIngresos } from '../hooks/useIngresos'
 import { useProfile } from '../contexts/ProfileContext'
 import { useCurrency, VIEW_MODES } from '../contexts/CurrencyContext'
@@ -12,6 +12,9 @@ export default function IngresosPage() {
   const [mes, setMes] = useState(now.getMonth() + 1)
   const [anio, setAnio] = useState(now.getFullYear())
   const [filtroCategoria, setFiltroCategoria] = useState('todas')
+  const [busqueda, setBusqueda] = useState('')
+  const [visibles, setVisibles] = useState(10)
+  const [vistaAbierta, setVistaAbierta] = useState(false)
   const [modal, setModal] = useState(null)
   const [detalle, setDetalle] = useState(null)
   const [eliminando, setEliminando] = useState(null)
@@ -29,9 +32,28 @@ export default function IngresosPage() {
     else setMes(m => m + 1)
   }
 
-  const ingresosFiltrados = filtroCategoria === 'todas'
-    ? ingresos
-    : ingresos.filter(i => i.categoria === filtroCategoria)
+  const ingresosFiltrados = useMemo(() => {
+    let lista = ingresos
+    if (filtroCategoria !== 'todas')
+      lista = lista.filter(i => i.categoria === filtroCategoria)
+    if (busqueda.trim()) {
+      const q = busqueda.toLowerCase().trim()
+      lista = lista.filter(i => {
+        const desc = (i.descripcion || '').toLowerCase()
+        const catLabel = getCategIngresosById(i.categoria).label.toLowerCase()
+        return desc.includes(q) || catLabel.includes(q)
+      })
+    }
+    return lista
+  }, [ingresos, filtroCategoria, busqueda])
+
+  const ingresosVisibles = ingresosFiltrados.slice(0, visibles)
+  const hayMas = ingresosFiltrados.length > visibles
+
+  // Reset visibles al cambiar filtros
+  const handleSetFiltroCategoria = (id) => { setFiltroCategoria(id); setVisibles(10) }
+  const handleBusqueda = (val) => { setBusqueda(val); setVisibles(10) }
+  const handleSetViewMode = (id) => { setViewMode(id); setVistaAbierta(false) }
 
   const totalEnModo = sumInMode(ingresosFiltrados.map(i => ({ monto: i.monto, moneda: i.moneda || 'ARS' })))
 
@@ -55,7 +77,7 @@ export default function IngresosPage() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8 gap-4">
+      <div className="flex items-center justify-between mb-5 md:mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">Ingresos</h1>
           <p className="text-slate-400 text-sm">Registrá tus entradas de dinero</p>
@@ -71,7 +93,7 @@ export default function IngresosPage() {
       </div>
 
       {/* Navegador de mes + ViewMode */}
-      <div className="glass rounded-2xl p-4 sm:p-5 mb-6 space-y-3 sm:space-y-4">
+      <div className="glass rounded-2xl p-3 sm:p-5 mb-4 md:mb-6 space-y-2 sm:space-y-4">
         <div className="flex items-center justify-between">
           <button id="prev-mes-ingresos" onClick={prevMes} className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
             <ChevronLeft size={20} />
@@ -84,10 +106,25 @@ export default function IngresosPage() {
             <ChevronRight size={20} />
           </button>
         </div>
-        <div className="flex gap-2">
+        {/* Trigger compacto — solo mobile */}
+        <button
+          id="toggle-vista-ingresos"
+          onClick={() => setVistaAbierta(v => !v)}
+          className="md:hidden w-full flex items-center justify-center gap-1.5 py-0.5 text-xs text-slate-400 hover:text-white transition-colors"
+        >
+          <span>Vista:</span>
+          <span className="text-white font-medium">{VIEW_MODES.find(m => m.id === viewMode)?.label}</span>
+          <ChevronDown
+            size={13}
+            className={`transition-transform duration-200 ${vistaAbierta ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {/* Fila de botones: siempre en desktop, condicional en mobile */}
+        <div className={`gap-2 ${vistaAbierta ? 'flex' : 'hidden'} md:flex`}>
           {VIEW_MODES.map(mode => (
             <button key={mode.id} id={`view-mode-ingresos-${mode.id}`}
-              onClick={() => setViewMode(mode.id)}
+              onClick={() => handleSetViewMode(mode.id)}
               className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center ${
                 viewMode === mode.id
                   ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300'
@@ -98,10 +135,6 @@ export default function IngresosPage() {
             </button>
           ))}
         </div>
-        {/* Descripción del modo activo en móvil */}
-        <p className="md:hidden text-center text-xs text-slate-400 mt-3">
-          Vista: <span className="text-white font-medium">{VIEW_MODES.find(m => m.id === viewMode)?.label}</span>
-        </p>
         {cotizacionMEP && (
           <p className="text-xs text-slate-500 text-center hidden sm:block">
             💹 MEP: {formatARS(cotizacionMEP.venta)}
@@ -123,7 +156,7 @@ export default function IngresosPage() {
           </p>
         </div>
         {topCategoria && (
-          <div className="glass rounded-2xl p-4 col-span-2 md:col-span-1">
+          <div className="hidden md:block glass rounded-2xl p-4 col-span-2 md:col-span-1">
             <p className="text-slate-400 text-xs mb-1">Mayor fuente</p>
             <div className="flex items-center gap-2">
               <span className="text-lg">{getCategIngresosById(topCategoria[0]).emoji}</span>
@@ -138,12 +171,34 @@ export default function IngresosPage() {
         )}
       </div>
 
+      {/* Buscador */}
+      <div className="relative mb-4">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <input
+          id="buscador-ingresos"
+          type="text"
+          placeholder="Buscar por descripción o categoría…"
+          value={busqueda}
+          onChange={e => handleBusqueda(e.target.value)}
+          className="w-full bg-slate-800/60 border border-slate-700/50 rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 focus:bg-slate-800/80 transition-all"
+        />
+        {busqueda && (
+          <button
+            onClick={() => handleBusqueda('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+            aria-label="Limpiar búsqueda"
+          >
+            <X size={15} />
+          </button>
+        )}
+      </div>
+
       {/* Filtro categorías */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
         <Filter size={14} className="text-slate-400 flex-shrink-0" />
         <button
           id="filtro-ingresos-todas"
-          onClick={() => setFiltroCategoria('todas')}
+          onClick={() => handleSetFiltroCategoria('todas')}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 transition-all ${
             filtroCategoria === 'todas'
               ? 'gradient-green text-white'
@@ -156,7 +211,7 @@ export default function IngresosPage() {
           <button
             key={cat.id}
             id={`filtro-ingreso-${cat.id}`}
-            onClick={() => setFiltroCategoria(cat.id)}
+            onClick={() => handleSetFiltroCategoria(cat.id)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 transition-all flex items-center gap-1 ${
               filtroCategoria === cat.id
                 ? 'text-white border border-current'
@@ -176,15 +231,20 @@ export default function IngresosPage() {
         </div>
       ) : ingresosFiltrados.length === 0 ? (
         <div className="glass rounded-2xl p-12 text-center">
-          <p className="text-4xl mb-3">💵</p>
-          <p className="text-slate-300 font-medium">No hay ingresos registrados</p>
+          <p className="text-4xl mb-3">{busqueda ? '🔍' : '💵'}</p>
+          <p className="text-slate-300 font-medium">
+            {busqueda ? `Sin resultados para "${busqueda}"` : 'No hay ingresos registrados'}
+          </p>
           <p className="text-slate-500 text-sm mt-1">
-            {filtroCategoria !== 'todas' ? 'Probá con otra categoría' : 'Agregá tu primer ingreso del mes'}
+            {busqueda
+              ? 'Probá con otra descripción o categoría'
+              : filtroCategoria !== 'todas' ? 'Probá con otra categoría' : 'Agregá tu primer ingreso del mes'
+            }
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {ingresosFiltrados.map((ingreso) => {
+          {ingresosVisibles.map((ingreso) => {
             const cat = getCategIngresosById(ingreso.categoria)
             return (
               <div
@@ -256,6 +316,25 @@ export default function IngresosPage() {
               </div>
             )
           })}
+
+          {/* Botón cargar más */}
+          {hayMas && (
+            <button
+              id="cargar-mas-ingresos"
+              onClick={() => setVisibles(v => v + 10)}
+              className="w-full mt-2 py-3 rounded-2xl glass border border-slate-700/40 text-slate-400 hover:text-white hover:border-emerald-500/40 hover:bg-emerald-500/5 text-sm font-medium transition-all flex items-center justify-center gap-2"
+            >
+              <span>Cargar más</span>
+              <span className="text-xs text-slate-500">({ingresosFiltrados.length - visibles} restantes)</span>
+            </button>
+          )}
+
+          {/* Indicador total */}
+          {ingresosFiltrados.length > 0 && (
+            <p className="text-center text-xs text-slate-600 pt-1">
+              Mostrando {Math.min(visibles, ingresosFiltrados.length)} de {ingresosFiltrados.length} ingresos
+            </p>
+          )}
         </div>
       )}
 
