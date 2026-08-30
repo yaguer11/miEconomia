@@ -113,6 +113,28 @@ export function ProfileProvider({ children }) {
     setMiembros(prev => prev.filter(m => m.id !== miembroId))
   }
 
+  /** Actualizar información básica del perfil */
+  const actualizarPerfil = async (nuevoNombre) => {
+    if (!user) throw new Error('No hay usuario autenticado')
+    
+    const { error: perfilError } = await supabase
+      .from('perfiles')
+      .update({ nombre: nuevoNombre })
+      .eq('id', user.id)
+    if (perfilError) throw perfilError
+
+    if (miMiembro) {
+      const { error: miembroError } = await supabase
+        .from('familia_miembros')
+        .update({ nombre_display: nuevoNombre })
+        .eq('id', miMiembro.id)
+      if (miembroError) throw miembroError
+    }
+
+    await supabase.auth.updateUser({ data: { nombre: nuevoNombre } })
+    await loadPerfil()
+  }
+
   return (
     <ProfileContext.Provider value={{
       perfil,
@@ -125,6 +147,7 @@ export function ProfileProvider({ children }) {
       crearPerfil,
       agregarMiembroVirtual,
       eliminarMiembro,
+      actualizarPerfil,
       refetch: loadPerfil,
     }}>
       {children}

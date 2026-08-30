@@ -12,6 +12,7 @@ import AhorrosPage from './pages/AhorrosPage'
 import IngresosPage from './pages/IngresosPage'
 import FamiliaPage from './pages/FamiliaPage'
 import CategoriasPage from './pages/CategoriasPage'
+import PerfilPage from './pages/PerfilPage'
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
                 <Route path="ahorros" element={<AhorrosPage />} />
                 <Route path="categorias" element={<CategoriasPage />} />
                 <Route path="familia" element={<FamiliaPage />} />
+                <Route path="perfil" element={<PerfilPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

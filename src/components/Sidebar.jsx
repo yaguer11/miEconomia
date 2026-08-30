@@ -92,15 +92,24 @@ export default function Sidebar() {
 
         {/* Footer usuario */}
         <div className="px-3 py-4 border-t border-slate-800/60">
-          <div className="flex items-center gap-3 px-3 py-2 mb-1">
-            <div className="w-8 h-8 rounded-full gradient-purple flex items-center justify-center text-white text-sm font-bold">
+          <NavLink
+            id="btn-profile"
+            to="/perfil"
+            onClick={() => setOpen(false)}
+            className={({ isActive }) =>
+              `w-full flex items-center gap-3 px-3 py-2 mb-1 rounded-xl transition-colors text-left ${
+                isActive ? 'bg-white/8' : 'hover:bg-white/5'
+              }`
+            }
+          >
+            <div className="w-8 h-8 rounded-full gradient-purple flex items-center justify-center text-white text-sm font-bold shrink-0">
               {nombre[0]?.toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white text-xs font-medium truncate">{nombre}</p>
               <p className="text-slate-500 text-xs truncate">{user?.email}</p>
             </div>
-          </div>
+          </NavLink>
           <button
             id="btn-signout"
             onClick={handleSignOut}
