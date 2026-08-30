@@ -62,7 +62,7 @@ function MonthNavigator({ mes, anio, esMesActual, onPrev, onNext, onHoy }) {
             onClick={onHoy}
             className="text-indigo-400 text-[10px] hover:text-indigo-300 transition-colors font-medium leading-none mt-0.5"
           >
-            Hoy
+            ↩ Ir a hoy
           </button>
         )}
       </div>

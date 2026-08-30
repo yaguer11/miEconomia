@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from '../contexts/ProfileContext'
 
 const BASE_NAV = [
-  { to: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/dashboard',  icon: LayoutDashboard, label: 'Resumen' },
   { to: '/ingresos',   icon: TrendingUp,      label: 'Ingresos' },
   { to: '/gastos',     icon: TrendingDown,    label: 'Gastos' },
   { to: '/ahorros',   icon: PiggyBank,       label: 'Ahorros' },
