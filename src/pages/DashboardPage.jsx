@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { TrendingDown, PiggyBank, TrendingUp, Wallet, RefreshCw, ChevronLeft } from 'lucide-react'
+import { TrendingDown, PiggyBank, TrendingUp, Wallet, RefreshCw, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -41,10 +41,80 @@ const CustomTooltip = ({ active, payload, formatInMode }) => {
   return null
 }
 
+function MonthNavigator({ mes, anio, esMesActual, onPrev, onNext, onHoy }) {
+  return (
+    <div className="w-full flex items-center bg-white/5 border border-white/8 rounded-xl px-1 py-1">
+      <button
+        id="dashboard-mes-anterior"
+        onClick={onPrev}
+        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors flex-shrink-0"
+        title="Mes anterior"
+      >
+        <ChevronLeft size={18} />
+      </button>
+      <div className="flex-1 flex flex-col items-center">
+        <span className="text-slate-300 text-sm md:text-base font-medium select-none transition-all duration-200">
+          {MESES[mes - 1]} {anio}
+        </span>
+        {!esMesActual && (
+          <button
+            id="dashboard-volver-hoy"
+            onClick={onHoy}
+            className="text-indigo-400 text-[10px] hover:text-indigo-300 transition-colors font-medium leading-none mt-0.5"
+          >
+            Hoy
+          </button>
+        )}
+      </div>
+      <button
+        id="dashboard-mes-siguiente"
+        onClick={onNext}
+        disabled={esMesActual}
+        className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${
+          esMesActual
+            ? 'text-slate-700 cursor-not-allowed'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'
+        }`}
+        title={esMesActual ? 'Mes actual' : 'Mes siguiente'}
+      >
+        <ChevronRight size={18} />
+      </button>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const now = new Date()
-  const mes = now.getMonth() + 1
-  const anio = now.getFullYear()
+  const mesActual = now.getMonth() + 1
+  const anioActual = now.getFullYear()
+  const [mesNavegado, setMesNavegado] = useState(mesActual)
+  const [anioNavegado, setAnioNavegado] = useState(anioActual)
+  const esMesActual = mesNavegado === mesActual && anioNavegado === anioActual
+
+  const irMesAnterior = () => {
+    if (mesNavegado === 1) {
+      setAnioNavegado(a => a - 1)
+      setMesNavegado(12)
+    } else {
+      setMesNavegado(m => m - 1)
+    }
+  }
+
+  const irMesSiguiente = () => {
+    if (esMesActual) return
+    if (mesNavegado === 12) {
+      setAnioNavegado(a => a + 1)
+      setMesNavegado(1)
+    } else {
+      setMesNavegado(m => m + 1)
+    }
+  }
+
+  const volverAlMesActual = () => {
+    setMesNavegado(mesActual)
+    setAnioNavegado(anioActual)
+  }
+
   const { user } = useAuth()
   const { esFamiliar, perfil, familia } = useProfile()
   const {
@@ -53,12 +123,15 @@ export default function DashboardPage() {
     cotizacionMEP, tiempoActualizacion, loading: loadingDolar, error: errorDolar, refetch: refetchDolar,
   } = useCurrency()
 
-  const { gastos } = useGastos(mes, anio)
-  const { ingresos } = useIngresos(mes, anio)
+  const { gastos } = useGastos(mesNavegado, anioNavegado)
+  const { ingresos } = useIngresos(mesNavegado, anioNavegado)
   const { totalAhorradoARS, totalAhorradoUSD, objetivos } = useAhorros()
   const { categorias } = useCategorias()
   const [historial, setHistorial] = useState([])
   const [drillCatId, setDrillCatId] = useState(null) // ID categoría en drill-down
+  const [vistaAbierta, setVistaAbierta] = useState(false)
+
+  const handleSetViewMode = (id) => { setViewMode(id); setVistaAbierta(false) }
 
   // Totales según viewMode
   const totalGastos = sumInMode(gastos.map(g => ({ monto: g.monto, moneda: g.moneda || 'ARS' })))
@@ -106,7 +179,7 @@ export default function DashboardPage() {
     const fetchHistorial = async () => {
       const results = []
       for (let i = 5; i >= 0; i--) {
-        const d = new Date(anio, mes - 1 - i, 1)
+        const d = new Date(anioNavegado, mesNavegado - 1 - i, 1)
         const m = d.getMonth() + 1
         const y = d.getFullYear()
         const startDate = `${y}-${String(m).padStart(2, '0')}-01`
@@ -134,7 +207,7 @@ export default function DashboardPage() {
       setHistorial(results)
     }
     fetchHistorial()
-  }, [user, mes, anio, esFamiliar, perfil])
+  }, [user, mesNavegado, anioNavegado, esFamiliar, perfil])
 
   // Historial con conversión según viewMode actual
   const historialConvertido = historial.map(h => ({
@@ -154,13 +227,23 @@ export default function DashboardPage() {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Greeting */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">
+      <div className="mb-5">
+        <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">
           Hola, <span className="gradient-text">{nombre}</span> 👋
         </h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Resumen de {MESES[mes - 1]} {anio} {esFamiliar && familia ? `• Familia ${familia.nombre}` : ''}
-        </p>
+        <div className="flex flex-col items-start gap-2 w-full mt-2">
+          {esFamiliar && familia && (
+            <span className="hidden md:inline text-slate-500 text-xs">• {familia.nombre}</span>
+          )}
+          <MonthNavigator
+            mes={mesNavegado}
+            anio={anioNavegado}
+            esMesActual={esMesActual}
+            onPrev={irMesAnterior}
+            onNext={irMesSiguiente}
+            onHoy={volverAlMesActual}
+          />
+        </div>
       </div>
 
       {/* Panel de tipo de cambio + selector de modo */}
@@ -191,13 +274,27 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Selector de modo de vista */}
-        <div className="flex gap-2">
+        {/* Trigger compacto — solo mobile */}
+        <button
+          id="toggle-vista-dashboard"
+          onClick={() => setVistaAbierta(v => !v)}
+          className="md:hidden w-full flex items-center justify-center gap-1.5 py-0.5 text-xs text-slate-400 hover:text-white transition-colors"
+        >
+          <span>Vista:</span>
+          <span className="text-white font-medium">{VIEW_MODES.find(m => m.id === viewMode)?.label}</span>
+          <ChevronDown
+            size={13}
+            className={`transition-transform duration-200 ${vistaAbierta ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {/* Fila de botones: siempre en desktop, condicional en mobile */}
+        <div className={`gap-2 ${vistaAbierta ? 'flex' : 'hidden'} md:flex`}>
           {VIEW_MODES.map(mode => (
             <button
               key={mode.id}
               id={`dashboard-view-mode-${mode.id}`}
-              onClick={() => setViewMode(mode.id)}
+              onClick={() => handleSetViewMode(mode.id)}
               className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-center ${
                 viewMode === mode.id
                   ? 'bg-indigo-500/20 border border-indigo-500/50 text-indigo-300'
@@ -209,10 +306,6 @@ export default function DashboardPage() {
             </button>
           ))}
         </div>
-        {/* Descripción del modo activo en móvil */}
-        <p className="md:hidden text-center text-xs text-slate-400 mt-3">
-          Vista: <span className="text-white font-medium">{VIEW_MODES.find(m => m.id === viewMode)?.label}</span>
-        </p>
       </div>
 
       {/* Stat cards */}
