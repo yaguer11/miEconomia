@@ -8,6 +8,13 @@
     <meta name="theme-color" content="#8b5cf6" />
     <link rel="apple-touch-icon" href="/pwa-192x192.svg" />
     <title>Mi Economía - Tus finanzas personales</title>
+    <script>
+      // Catch the beforeinstallprompt event early
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.pwaDeferredPrompt = e;
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

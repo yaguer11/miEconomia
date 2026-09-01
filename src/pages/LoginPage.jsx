@@ -4,12 +4,15 @@ import { useAuth } from '../contexts/AuthContext'
 import { isSupabaseConfigured } from '../lib/supabase'
 import {
   Wallet, Mail, Lock, User, Eye, EyeOff,
-  AlertCircle, Settings, Users, UserCircle, ChevronLeft,
+  AlertCircle, Settings, Users, UserCircle, ChevronLeft, Download,
 } from 'lucide-react'
+
+import { usePWAInstall } from '../hooks/usePWAInstall'
 
 const STEP = { CREDENCIALES: 1, TIPO: 2, FAMILIA: 3 }
 
 export default function LoginPage() {
+  const { isInstallable, installPWA } = usePWAInstall()
   const [mode, setMode] = useState('login')
   const [step, setStep] = useState(STEP.CREDENCIALES)
 
@@ -326,6 +329,18 @@ export default function LoginPage() {
         <p className="text-center text-slate-500 text-xs mt-6">
           Tus datos están protegidos con cifrado de extremo a extremo
         </p>
+
+        {isInstallable && (
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={installPWA}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-800/80 border border-slate-700/50 text-white font-medium text-sm hover:bg-slate-700 hover:border-indigo-500/50 transition-all shadow-lg backdrop-blur-md"
+            >
+              <Download size={18} className="text-indigo-400" />
+              Instalar Aplicación
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
