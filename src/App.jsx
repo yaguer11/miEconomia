@@ -13,6 +13,7 @@ import IngresosPage from './pages/IngresosPage'
 import FamiliaPage from './pages/FamiliaPage'
 import CategoriasPage from './pages/CategoriasPage'
 import PerfilPage from './pages/PerfilPage'
+import PendientesPage from './pages/PendientesPage'
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="ingresos" element={<IngresosPage />} />
                 <Route path="gastos" element={<GastosPage />} />
+                <Route path="pendientes" element={<PendientesPage />} />
                 <Route path="ahorros" element={<AhorrosPage />} />
                 <Route path="categorias" element={<CategoriasPage />} />
                 <Route path="familia" element={<FamiliaPage />} />

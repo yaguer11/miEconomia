@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, TrendingDown, TrendingUp, PiggyBank, Users, LogOut, Menu, X, Wallet, Tags } from 'lucide-react'
+import { LayoutDashboard, TrendingDown, TrendingUp, PiggyBank, Users, LogOut, Menu, X, Wallet, Tags, ListTodo } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from '../contexts/ProfileContext'
@@ -8,6 +8,7 @@ const BASE_NAV = [
   { to: '/dashboard',  icon: LayoutDashboard, label: 'Resumen' },
   { to: '/ingresos',   icon: TrendingUp,      label: 'Ingresos' },
   { to: '/gastos',     icon: TrendingDown,    label: 'Gastos' },
+  { to: '/pendientes', icon: ListTodo,        label: 'Pendientes' },
   { to: '/ahorros',   icon: PiggyBank,       label: 'Ahorros' },
   { to: '/categorias', icon: Tags,            label: 'Categorías' },
 ]
