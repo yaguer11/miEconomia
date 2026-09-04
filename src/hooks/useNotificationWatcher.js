@@ -1,28 +1,37 @@
 import { useState, useEffect, useCallback } from 'react'
 
-// Sintetizador de sonido sutil para alertas (no requiere archivos externos)
+// Sintetizador de sonido sutil para alertas (Doble Beep)
 function reproducirSonidoNotificacion() {
   try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext
-    if (!AudioContext) return
-    const ctx = new AudioContext()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
     
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(587.33, ctx.currentTime) // D5
-    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15) // A5
-    
-    gain.gain.setValueAtTime(0.2, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35)
-    
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    
-    osc.start()
-    osc.stop(ctx.currentTime + 0.35)
+    // Primer Beep
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'square';
+    osc1.frequency.setValueAtTime(800, ctx.currentTime);
+    gain1.gain.setValueAtTime(0.5, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start();
+    osc1.stop(ctx.currentTime + 0.1);
+
+    // Segundo Beep
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'square';
+    osc2.frequency.setValueAtTime(1200, ctx.currentTime + 0.15);
+    gain2.gain.setValueAtTime(0.5, ctx.currentTime + 0.15);
+    gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(ctx.currentTime + 0.15);
+    osc2.stop(ctx.currentTime + 0.25);
   } catch (e) {
-    console.warn('No se pudo reproducir el sonido de notificación:', e)
+    console.warn('No se pudo reproducir el sonido de notificación:', e);
   }
 }
 
