@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import {
   Plus,
   Trash2,
@@ -39,6 +39,16 @@ export default function PendientesPage() {
   const [quickTitulo, setQuickTitulo] = useState('')
   const [quickTipo, setQuickTipo] = useState('compra')
   const [quickPrioritario, setQuickPrioritario] = useState(false)
+
+  const obtenerFechaHoraInicial = () => {
+    const d = new Date()
+    d.setDate(d.getDate() + 1)
+    d.setHours(9, 0, 0, 0)
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+  const [quickFechaRecordatorio, setQuickFechaRecordatorio] = useState(obtenerFechaHoraInicial())
+  const dateInputRef = useRef(null)
 
   const {
     pendientes,
@@ -131,13 +141,10 @@ export default function PendientesPage() {
     e.preventDefault()
     if (!quickTitulo.trim()) return
 
-    // Si marcó rápido como prioritario, programamos para mañana a las 09:00
+    // Si marcó rápido como prioritario, usamos la fecha seleccionada
     let fechaRec = null
     if (quickPrioritario) {
-      const d = new Date()
-      d.setDate(d.getDate() + 1)
-      d.setHours(9, 0, 0, 0)
-      fechaRec = d.toISOString()
+      fechaRec = quickFechaRecordatorio ? new Date(quickFechaRecordatorio).toISOString() : null
       if (permission === 'default') {
         await solicitarPermiso()
       }
@@ -153,6 +160,7 @@ export default function PendientesPage() {
 
     setQuickTitulo('')
     setQuickPrioritario(false)
+    setQuickFechaRecordatorio(obtenerFechaHoraInicial())
   }
 
   const handleEliminar = async (id) => {
@@ -317,11 +325,31 @@ export default function PendientesPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative">
+          <input
+            type="datetime-local"
+            ref={dateInputRef}
+            value={quickFechaRecordatorio}
+            onChange={(e) => setQuickFechaRecordatorio(e.target.value)}
+            className="absolute opacity-0 pointer-events-none -z-10 w-0 h-0"
+            tabIndex={-1}
+            required={quickPrioritario}
+          />
           <button
             type="button"
-            title={quickPrioritario ? 'Prioritario activo (Con aviso)' : 'Marcar como prioritario'}
-            onClick={() => setQuickPrioritario(!quickPrioritario)}
+            title={quickPrioritario ? `Prioritario activo (${quickFechaRecordatorio.replace('T', ' ')})` : 'Marcar como prioritario'}
+            onClick={() => {
+              if (!quickPrioritario) {
+                setQuickPrioritario(true)
+                setTimeout(() => {
+                  try {
+                    dateInputRef.current?.showPicker()
+                  } catch(e) {}
+                }, 0)
+              } else {
+                setQuickPrioritario(false)
+              }
+            }}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
               quickPrioritario
                 ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
