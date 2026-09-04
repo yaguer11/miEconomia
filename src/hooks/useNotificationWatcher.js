@@ -42,19 +42,37 @@ export function useNotificationWatcher(pendientes = [], marcarNotificado) {
     }
   }, [])
 
+  // Helper para enviar notificaciones compatibles con Android (requiere Service Worker)
+  const enviarNotificacion = useCallback(async (titulo, opciones) => {
+    if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          await registration.showNotification(titulo, opciones);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Error con Service Worker Notification:', err);
+    }
+
+    // Fallback tradicional (falla en Android Chrome)
+    try {
+      new Notification(titulo, opciones);
+    } catch (err) {
+      console.error('Error disparando Notification (fallback):', err);
+    }
+  }, []);
+
   const probarNotificacion = useCallback(() => {
     reproducirSonidoNotificacion()
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification('🔔 ¡Notificaciones de Mi Economía activas!', {
-          body: 'Esta es una notificación de prueba. Te avisaremos puntualmente de tus recordatorios prioritarios.',
-          icon: '/favicon.ico',
-        })
-      } catch (err) {
-        console.error('Error al emitir notificación de prueba:', err)
-      }
-    }
-  }, [])
+    enviarNotificacion('🔔 ¡Notificaciones de Mi Economía activas!', {
+      body: 'Esta es una notificación de prueba. Te avisaremos puntualmente de tus recordatorios prioritarios.',
+      icon: '/favicon.ico',
+    })
+  }, [enviarNotificacion])
 
   const solicitarPermiso = useCallback(async () => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -100,22 +118,16 @@ export function useNotificationWatcher(pendientes = [], marcarNotificado) {
           marcarNotificado(item.id)
 
           // 2. Disparar notificación nativa si hay permiso
-          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-            try {
-              const titulo = item.tipo === 'compra' ? `🛒 Compra pendiente: ${item.titulo}` : `📝 Recordatorio: ${item.titulo}`
-              const cuerpo = item.monto_estimado 
-                ? `Monto estimado: ${item.moneda || 'ARS'} $${Number(item.monto_estimado).toLocaleString()}` 
-                : (item.notas || 'Tienes un recordatorio prioritario marcado para este momento.')
+          const titulo = item.tipo === 'compra' ? `🛒 Compra pendiente: ${item.titulo}` : `📝 Recordatorio: ${item.titulo}`
+          const cuerpo = item.monto_estimado 
+            ? `Monto estimado: ${item.moneda || 'ARS'} $${Number(item.monto_estimado).toLocaleString()}` 
+            : (item.notas || 'Tienes un recordatorio prioritario marcado para este momento.')
 
-              new Notification(titulo, {
-                body: cuerpo,
-                icon: '/favicon.ico',
-                tag: `recordatorio-${item.id}`,
-              })
-            } catch (err) {
-              console.error('Error disparando Notification:', err)
-            }
-          }
+          enviarNotificacion(titulo, {
+            body: cuerpo,
+            icon: '/favicon.ico',
+            tag: `recordatorio-${item.id}`,
+          })
 
           // 3. Reproducir sonido y activar alerta visual en app
           reproducirSonidoNotificacion()
