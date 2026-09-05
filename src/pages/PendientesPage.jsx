@@ -269,7 +269,12 @@ export default function PendientesPage() {
         <button
           type="button"
           id="btn-nuevo-pendiente"
-          onClick={() => setModalPendiente({ mode: 'crear' })}
+          onClick={() =>
+            setModalPendiente({
+              mode: 'crear',
+              item: tab === 'tareas' ? { tipo: 'tarea' } : { tipo: 'compra' },
+            })
+          }
           className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs font-bold text-white gradient-purple hover:opacity-90 transition-all shadow-md shadow-indigo-500/20 shrink-0"
           title="Nuevo Recordatorio"
         >
@@ -278,10 +283,10 @@ export default function PendientesPage() {
         </button>
       </div>
 
-      {/* Barra de Carga Rápida (Quick Add) */}
+      {/* Barra de Carga Rápida (Quick Add) - Oculta en vista de celular */}
       <form
         onSubmit={handleQuickAdd}
-        className="glass rounded-2xl p-3 border border-slate-800/80 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5"
+        className="hidden md:flex glass rounded-2xl p-3 border border-slate-800/80 shadow-lg flex-col sm:flex-row items-stretch sm:items-center gap-2.5"
       >
         <div className="flex items-center gap-1.5 bg-slate-900/90 rounded-xl p-1 shrink-0 border border-slate-800">
           <button

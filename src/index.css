@@ -30,6 +30,15 @@
     background: #334155;
     border-radius: 3px;
   }
+
+  /* Evita el zoom automático en iOS (Safari/WebKit) al hacer tap en inputs */
+  @media (max-width: 768px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
 }
 
 @layer utilities {
