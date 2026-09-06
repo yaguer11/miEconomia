@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, TrendingDown, TrendingUp, PiggyBank, Users, LogOut, Menu, X, Wallet, Tags, ListTodo } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from '../contexts/ProfileContext'
 
@@ -29,6 +29,16 @@ export default function Sidebar() {
   }
 
   const nombre = perfil?.nombre || user?.user_metadata?.nombre || user?.email?.split('@')[0] || 'Usuario'
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    if (open) {
+      window.addEventListener('keydown', handleKeyDown)
+      return () => window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open])
 
   const NavItems = () => (
     <nav className="flex-1 px-3 py-4 space-y-1">
@@ -60,14 +70,17 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile hamburger */}
-      <button
-        id="sidebar-toggle"
-        className="md:hidden fixed top-4 left-4 z-50 p-2 glass rounded-xl text-white"
-        onClick={() => setOpen(!open)}
-      >
-        {open ? <X size={20} /> : <Menu size={20} />}
-      </button>
+      {/* Mobile hamburger (solo visible cuando el menú está cerrado) */}
+      {!open && (
+        <button
+          id="sidebar-toggle"
+          className="md:hidden fixed top-4 left-4 z-50 p-2 glass rounded-xl text-white shadow-lg active:scale-95 transition-transform"
+          onClick={() => setOpen(true)}
+          aria-label="Abrir menú"
+        >
+          <Menu size={20} />
+        </button>
+      )}
 
       {/* Overlay mobile */}
       {open && (
@@ -75,17 +88,28 @@ export default function Sidebar() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed md:sticky top-0 left-0 z-40 h-screen w-60 bg-[#0d1425] border-r border-slate-800/60 flex flex-col transition-transform duration-300 ${open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-800/60">
-          <div className="w-8 h-8 rounded-lg gradient-purple flex items-center justify-center shadow-md">
-            <Wallet size={16} className="text-white" />
-          </div>
-          <div>
-            <span className="text-white font-bold text-sm">Mi Economía</span>
-            {esFamiliar && (
-              <p className="text-xs text-emerald-400 leading-none mt-0.5">👨‍👩‍👧 Familiar</p>
-            )}
+      <aside className={`fixed md:sticky top-0 left-0 z-50 md:z-40 h-screen w-60 bg-[#0d1425] border-r border-slate-800/60 flex flex-col transition-transform duration-300 ${open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        {/* Header con Logo y botón de cerrar para móvil */}
+        <div className="flex items-center justify-start gap-2.5 px-4 py-4 border-b border-slate-800/60">
+          <button
+            id="sidebar-close"
+            onClick={() => setOpen(false)}
+            className="md:hidden p-2 glass rounded-xl text-white hover:text-indigo-400 shadow-md active:scale-95 transition-all shrink-0"
+            aria-label="Cerrar menú"
+          >
+            <X size={20} />
+          </button>
+
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg gradient-purple flex items-center justify-center shadow-md shrink-0">
+              <Wallet size={16} className="text-white" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-white font-bold text-sm block truncate">Mi Economía</span>
+              {esFamiliar && (
+                <p className="text-xs text-emerald-400 leading-none mt-0.5 truncate">👨‍👩‍👧 Familiar</p>
+              )}
+            </div>
           </div>
         </div>
 
