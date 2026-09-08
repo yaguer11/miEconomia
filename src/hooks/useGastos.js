@@ -64,6 +64,11 @@ export function useGastos(mes, anio) {
   useEffect(() => { fetchGastos() }, [fetchGastos])
 
   const agregarGasto = async (gasto) => {
+    // Guarda: si el perfil aún está cargando (undefined), los IDs de familia
+    // y miembro no estarían disponibles y el registro quedaría sin ellos.
+    if (perfil === undefined) {
+      throw new Error('Tu perfil aún está cargando. Esperá un momento e intentá de nuevo.')
+    }
     const payload = {
       ...gasto,
       moneda: gasto.moneda || 'ARS',

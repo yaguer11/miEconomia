@@ -151,7 +151,7 @@ function CategoriaSelector({ categorias, categoriaId, subcategoriaId, onChange, 
 }
 
 // ── Modal principal ───────────────────────────────────────────────
-export default function GastoModal({ gasto, miembros = [], miembroDefault = null, onSave, onClose }) {
+export default function GastoModal({ gasto, miembros = [], miembroDefault = null, perfilCargando = false, onSave, onClose }) {
   const { tasaVentaMEP, formatARS } = useCurrency()
   const { categorias, loading: loadingCats } = useCategorias()
 
@@ -313,11 +313,14 @@ export default function GastoModal({ gasto, miembros = [], miembroDefault = null
               className="flex-1 py-3 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:border-slate-600 text-sm font-medium transition-all">
               Cancelar
             </button>
-            <button id="save-gasto" type="submit" disabled={loading}
-              className="flex-1 py-3 rounded-xl gradient-purple text-white text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
+            <button id="save-gasto" type="submit" disabled={loading || perfilCargando}
+              className="flex-1 py-3 rounded-xl gradient-purple text-white text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              title={perfilCargando ? 'Esperá que cargue tu perfil...' : undefined}>
               {loading
                 ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                : <><Save size={15} /> Guardar</>}
+                : perfilCargando
+                  ? <><span className="w-4 h-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin" /> Cargando...</>
+                  : <><Save size={15} /> Guardar</>}
             </button>
           </div>
         </form>

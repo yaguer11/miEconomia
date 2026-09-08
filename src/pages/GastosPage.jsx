@@ -20,7 +20,7 @@ export default function GastosPage() {
   const [eliminando, setEliminando] = useState(null)
 
   const { gastos, loading, agregarGasto, actualizarGasto, eliminarGasto } = useGastos(mes, anio)
-  const { esFamiliar, miembros, miMiembro } = useProfile()
+  const { esFamiliar, miembros, miMiembro, loading: loadingPerfil } = useProfile()
   const { viewMode, setViewMode, sumInMode, formatInMode, formatARS, formatUSD, cotizacionMEP, tiempoActualizacion } = useCurrency()
   const { categorias } = useCategorias()
 
@@ -401,6 +401,7 @@ export default function GastosPage() {
           gasto={modal.gasto}
           miembros={esFamiliar ? miembros : []}
           miembroDefault={miMiembro}
+          perfilCargando={modal.mode === 'crear' && loadingPerfil}
           onSave={modal.mode === 'crear'
             ? (data) => agregarGasto(data)
             : (data) => actualizarGasto(modal.gasto.id, data)
