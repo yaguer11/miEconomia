@@ -137,11 +137,23 @@ async function handleUpdate(update) {
       `👋 ¡Hola! Soy tu asistente de gastos.\n\n` +
       `📸 Mandame una *foto de un comprobante* y lo cargo automáticamente a tu cuenta.\n\n` +
       `*Comandos disponibles:*\n` +
-      `/manual 1500 Almuerzo — cargar sin foto\n` +
+      `/miid — ver tu ID de Telegram (necesario para la configuración)\n` +
+      `/manual 1500 Almuerzo — cargar gasto sin foto\n` +
       `/ultimos — ver tus últimos 5 gastos\n` +
       `/ayuda — más información`
     );
-    console.log(`Nuevo usuario: chat_id=${chatId}, username=${message.from?.username}`);
+    console.log(`/start recibido: chat_id=${chatId}, username=${message.from?.username}`);
+    return;
+  }
+
+  // ── /miid ────────────────────────────────────────────────────────────────
+  if (text.startsWith("/miid")) {
+    await sendMessage(
+      chatId,
+      `🪪 *Tu ID de Telegram es:*\n\n` +
+      `\`${chatId}\`\n\n` +
+      `Copialo y mandáselo al administrador para que te dé acceso al sistema.`
+    );
     return;
   }
 
