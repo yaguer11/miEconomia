@@ -123,24 +123,15 @@ async function handleUpdate(update) {
     return;
   }
 
-  const supabaseUserId = getSupabaseUserId(chatId);
-  if (!supabaseUserId) {
-    await sendMessage(
-      chatId,
-      "⚠️ Tu cuenta de Telegram no está vinculada a ningún usuario.\n" +
-      "Pedile al administrador que configure `TELEGRAM_USER_MAP`."
-    );
-    return;
-  }
-
   // ── /start ──────────────────────────────────────────────────────────────
+  // (siempre disponible, antes del chequeo de usuario)
   if (text.startsWith("/start")) {
     await sendMessage(
       chatId,
       `👋 ¡Hola! Soy tu asistente de gastos.\n\n` +
       `📸 Mandame una *foto de un comprobante* y lo cargo automáticamente a tu cuenta.\n\n` +
       `*Comandos disponibles:*\n` +
-      `/miid — ver tu ID de Telegram (necesario para la configuración)\n` +
+      `/miid — ver tu ID de Telegram\n` +
       `/manual 1500 Almuerzo — cargar gasto sin foto\n` +
       `/ultimos — ver tus últimos 5 gastos\n` +
       `/ayuda — más información`
@@ -150,15 +141,29 @@ async function handleUpdate(update) {
   }
 
   // ── /miid ────────────────────────────────────────────────────────────────
+  // (siempre disponible, para que cualquiera pueda obtener su chat_id)
   if (text.startsWith("/miid")) {
     await sendMessage(
       chatId,
       `🪪 *Tu ID de Telegram es:*\n\n` +
       `\`${chatId}\`\n\n` +
-      `Copialo y mandáselo al administrador para que te dé acceso al sistema.`
+      `Mandáselo al administrador para que te configure el acceso.`
     );
     return;
   }
+
+  // Chequeo de usuario vinculado (requerido para el resto de comandos)
+  const supabaseUserId = getSupabaseUserId(chatId);
+  if (!supabaseUserId) {
+    await sendMessage(
+      chatId,
+      `⚠️ Tu cuenta de Telegram no está vinculada aún.\n\n` +
+      `Tu ID es: \`${chatId}\`\n` +
+      `Pedile al administrador que configure tu acceso.`
+    );
+    return;
+  }
+
 
   // ── /ayuda ──────────────────────────────────────────────────────────────
   if (text.startsWith("/ayuda")) {
