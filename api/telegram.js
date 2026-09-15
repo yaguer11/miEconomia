@@ -77,9 +77,38 @@ Si no podés leer el monto total con certeza, poné "monto": null.
 async function insertarGasto(userId, datos) {
   const supabase = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
+  // 1. Obtener datos del perfil para saber si usa cuenta familiar
+  const { data: perfil } = await supabase
+    .from("perfiles")
+    .select("tipo, familia_id")
+    .eq("id", userId)
+    .single();
+
+  let familiaId = null;
+  let miembroId = null;
+
+  if (perfil?.tipo === "familiar" && perfil?.familia_id) {
+    familiaId = perfil.familia_id;
+    
+    // Obtener su ID de miembro dentro de la familia
+    const { data: miembro } = await supabase
+      .from("familia_miembros")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("familia_id", familiaId)
+      .single();
+      
+    if (miembro) {
+      miembroId = miembro.id;
+    }
+  }
+
   const gasto = {
     user_id: userId,
+    familia_id: familiaId,
+    miembro_id: miembroId,
     monto: datos.monto,
+    moneda: "ARS", // fallback por si la app lo requiere
     descripcion: datos.descripcion || "Comprobante escaneado",
     categoria: CATEGORIAS.includes(datos.categoria) ? datos.categoria : "otros",
     fecha: datos.fecha || new Date().toISOString().split("T")[0],
