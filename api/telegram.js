@@ -72,10 +72,13 @@ Extraé la información y respondé ÚNICAMENTE con JSON válido, sin markdown n
 Si no podés leer el monto total con certeza, poné "monto": null.
 `;
 
+// Soporta tanto SUPABASE_URL como VITE_SUPABASE_URL (que ya existe en Vercel)
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+
 // ── Insertar gasto en Supabase ──────────────────────────────────────────────
 async function insertarGasto(userId, datos) {
   const supabase = createClient(
-    process.env.SUPABASE_URL,
+    SUPABASE_URL,
     process.env.SUPABASE_SERVICE_KEY
   );
 
@@ -204,7 +207,7 @@ async function handleUpdate(update) {
   // ── /ultimos ────────────────────────────────────────────────────────────
   if (text.startsWith("/ultimos")) {
     const supabase = createClient(
-      process.env.SUPABASE_URL,
+      SUPABASE_URL,
       process.env.SUPABASE_SERVICE_KEY
     );
 
