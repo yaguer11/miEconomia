@@ -3,6 +3,7 @@ import { LayoutDashboard, TrendingDown, TrendingUp, PiggyBank, Users, LogOut, Me
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useProfile } from '../contexts/ProfileContext'
+import { usePendientesContext } from '../contexts/PendientesContext'
 
 const BASE_NAV = [
   { to: '/dashboard',  icon: LayoutDashboard, label: 'Resumen' },
@@ -20,6 +21,16 @@ export default function Sidebar() {
   const { signOut, user } = useAuth()
   const { esFamiliar, perfil, familia } = useProfile()
   const navigate = useNavigate()
+
+  // Badge de pendientes prioritarios vencidos (falla silencioso si el contexto no está disponible)
+  let prioritariosVencidosBadge = 0
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const ctx = usePendientesContext()
+    prioritariosVencidosBadge = ctx.prioritariosVencidosBadge ?? 0
+  } catch {
+    // PendientesProvider aún no montado (ej. login page)
+  }
 
   const navItems = esFamiliar ? [...BASE_NAV, FAMILIA_NAV] : BASE_NAV
 
@@ -61,6 +72,11 @@ export default function Sidebar() {
           {label === 'Mi Familia' && familia && (
             <span className="ml-auto text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
               {familia.nombre.slice(0, 8)}
+            </span>
+          )}
+          {label === 'Pendientes' && prioritariosVencidosBadge > 0 && (
+            <span className="ml-auto min-w-[20px] h-5 px-1 flex items-center justify-center text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+              {prioritariosVencidosBadge > 9 ? '9+' : prioritariosVencidosBadge}
             </span>
           )}
         </NavLink>

@@ -17,8 +17,7 @@ import {
   Lock,
   RotateCcw,
 } from 'lucide-react'
-import { usePendientes } from '../hooks/usePendientes'
-import { useNotificationWatcher } from '../hooks/useNotificationWatcher'
+import { usePendientesContext } from '../contexts/PendientesContext'
 import { useGastos } from '../hooks/useGastos'
 import { useProfile } from '../contexts/ProfileContext'
 import { useCurrency } from '../contexts/CurrencyContext'
@@ -57,11 +56,7 @@ export default function PendientesPage() {
     agregarPendiente,
     actualizarPendiente,
     toggleCompletado,
-    marcarNotificado,
     eliminarPendiente,
-  } = usePendientes()
-
-  const {
     permission,
     solicitarPermiso,
     probarNotificacion,
@@ -69,7 +64,7 @@ export default function PendientesPage() {
     cerrarAlerta,
     mostrarGuiaBloqueo,
     setMostrarGuiaBloqueo,
-  } = useNotificationWatcher(pendientes, marcarNotificado)
+  } = usePendientesContext()
 
   const now = new Date()
   const { agregarGasto } = useGastos(now.getMonth() + 1, now.getFullYear())

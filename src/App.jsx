@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ProfileProvider } from './contexts/ProfileContext'
 import { CurrencyProvider } from './contexts/CurrencyContext'
 import { CategoriasProvider } from './contexts/CategoriasContext'
+import { PendientesProvider } from './contexts/PendientesContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/AppLayout'
 import LoginPage from './pages/LoginPage'
@@ -28,7 +29,9 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <CategoriasProvider>
-                      <AppLayout />
+                      <PendientesProvider>
+                        <AppLayout />
+                      </PendientesProvider>
                     </CategoriasProvider>
                   </ProtectedRoute>
                 }
