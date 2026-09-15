@@ -1,15 +1,13 @@
 // api/telegram.js — Bot de gastos via Webhook (Vercel Serverless)
-// Nota: los archivos en /api usan CommonJS aunque el proyecto sea ESM
+// Usa ESM (import/export) para compatibilidad con "type": "module" del proyecto
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { createClient } = require("@supabase/supabase-js");
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { createClient } from "@supabase/supabase-js";
 
 // ── Usuarios autorizados (chat IDs de Telegram) ─────────────────────────────
-// Cómo obtenerlos: mandá /start al bot y mirá los logs de Vercel (Functions tab)
-// Una vez que los tengas, ponelos aquí:
 const CHAT_IDS_AUTORIZADOS = process.env.TELEGRAM_CHAT_IDS_AUTORIZADOS
   ? process.env.TELEGRAM_CHAT_IDS_AUTORIZADOS.split(",").map(Number)
-  : []; // Si está vacío, cualquiera puede usar el bot
+  : [];
 
 // ── Categorías válidas ──────────────────────────────────────────────────────
 const CATEGORIAS = [
@@ -17,7 +15,10 @@ const CATEGORIAS = [
   "ropa", "educacion", "servicios", "supermercado", "otros",
 ];
 
-// ── Helper: responder a Telegram ────────────────────────────────────────────
+// ── Soporta SUPABASE_URL o VITE_SUPABASE_URL (la que ya existe en Vercel) ───
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+
+// ── Helper: llamar a la API de Telegram ────────────────────────────────────
 async function telegramRequest(method, body) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
@@ -72,15 +73,9 @@ Extraé la información y respondé ÚNICAMENTE con JSON válido, sin markdown n
 Si no podés leer el monto total con certeza, poné "monto": null.
 `;
 
-// Soporta tanto SUPABASE_URL como VITE_SUPABASE_URL (que ya existe en Vercel)
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-
 // ── Insertar gasto en Supabase ──────────────────────────────────────────────
 async function insertarGasto(userId, datos) {
-  const supabase = createClient(
-    SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY
-  );
+  const supabase = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
   const gasto = {
     user_id: userId,
@@ -94,14 +89,12 @@ async function insertarGasto(userId, datos) {
 }
 
 // ── Obtener user_id de Supabase según telegram_chat_id ─────────────────────
-// Por simplicidad usamos un mapa en variables de entorno:
-// TELEGRAM_USER_MAP=123456789:uuid-supabase-1,987654321:uuid-supabase-2
+// Variable de entorno: TELEGRAM_USER_MAP=123456789:uuid-supabase-1,987654321:uuid-supabase-2
 function getSupabaseUserId(chatId) {
   const map = process.env.TELEGRAM_USER_MAP || "";
   if (!map) return process.env.SUPABASE_DEFAULT_USER_ID || null;
 
-  const pairs = map.split(",");
-  for (const pair of pairs) {
+  for (const pair of map.split(",")) {
     const [tgId, supaId] = pair.split(":");
     if (Number(tgId) === chatId) return supaId;
   }
@@ -123,13 +116,12 @@ async function handleUpdate(update) {
     return;
   }
 
-  // ── /start ──────────────────────────────────────────────────────────────
-  // (siempre disponible, antes del chequeo de usuario)
+  // ── /start (siempre disponible) ──────────────────────────────────────────
   if (text.startsWith("/start")) {
     await sendMessage(
       chatId,
       `👋 ¡Hola! Soy tu asistente de gastos.\n\n` +
-      `📸 Mandame una *foto de un comprobante* y lo cargo automáticamente a tu cuenta.\n\n` +
+      `📸 Mandame una *foto de un comprobante* y lo cargo automáticamente.\n\n` +
       `*Comandos disponibles:*\n` +
       `/miid — ver tu ID de Telegram\n` +
       `/manual 1500 Almuerzo — cargar gasto sin foto\n` +
@@ -140,32 +132,30 @@ async function handleUpdate(update) {
     return;
   }
 
-  // ── /miid ────────────────────────────────────────────────────────────────
-  // (siempre disponible, para que cualquiera pueda obtener su chat_id)
+  // ── /miid (siempre disponible, para obtener el chat_id sin estar vinculado) ─
   if (text.startsWith("/miid")) {
     await sendMessage(
       chatId,
       `🪪 *Tu ID de Telegram es:*\n\n` +
       `\`${chatId}\`\n\n` +
-      `Mandáselo al administrador para que te configure el acceso.`
+      `Mandáselo al administrador para que configure tu acceso.`
     );
     return;
   }
 
-  // Chequeo de usuario vinculado (requerido para el resto de comandos)
+  // ── Chequeo de usuario vinculado (para el resto de comandos) ────────────
   const supabaseUserId = getSupabaseUserId(chatId);
   if (!supabaseUserId) {
     await sendMessage(
       chatId,
-      `⚠️ Tu cuenta de Telegram no está vinculada aún.\n\n` +
+      `⚠️ Tu cuenta no está vinculada aún.\n\n` +
       `Tu ID es: \`${chatId}\`\n` +
       `Pedile al administrador que configure tu acceso.`
     );
     return;
   }
 
-
-  // ── /ayuda ──────────────────────────────────────────────────────────────
+  // ── /ayuda ───────────────────────────────────────────────────────────────
   if (text.startsWith("/ayuda")) {
     await sendMessage(
       chatId,
@@ -180,7 +170,7 @@ async function handleUpdate(update) {
     return;
   }
 
-  // ── /manual <monto> <descripcion> ──────────────────────────────────────
+  // ── /manual <monto> <descripcion> ───────────────────────────────────────
   if (text.startsWith("/manual")) {
     const parts = text.replace("/manual", "").trim().split(" ");
     const monto = parseFloat(parts[0]);
@@ -192,30 +182,20 @@ async function handleUpdate(update) {
     }
 
     const { error } = await insertarGasto(supabaseUserId, {
-      monto,
-      descripcion,
-      categoria: "otros",
-      fecha: null,
+      monto, descripcion, categoria: "otros", fecha: null,
     });
 
     if (error) {
       await sendMessage(chatId, `❌ Error al guardar: ${error.message}`);
     } else {
-      await sendMessage(
-        chatId,
-        `✅ *Gasto registrado!*\n\n💰 $${monto}\n📝 ${descripcion}\n🏷️ otros`
-      );
+      await sendMessage(chatId, `✅ *Gasto registrado!*\n\n💰 $${monto}\n📝 ${descripcion}\n🏷️ otros`);
     }
     return;
   }
 
-  // ── /ultimos ────────────────────────────────────────────────────────────
+  // ── /ultimos ─────────────────────────────────────────────────────────────
   if (text.startsWith("/ultimos")) {
-    const supabase = createClient(
-      SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY
-    );
-
+    const supabase = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
     const { data, error } = await supabase
       .from("gastos")
       .select("monto, descripcion, categoria, fecha")
@@ -229,27 +209,24 @@ async function handleUpdate(update) {
     }
 
     const lista = data
-      .map((g) => `• *$${g.monto}* — ${g.descripcion} _(${g.categoria})_ [${g.fecha}]`)
+      .map(g => `• *$${g.monto}* — ${g.descripcion} _(${g.categoria})_ [${g.fecha}]`)
       .join("\n");
 
     await sendMessage(chatId, `📋 *Tus últimos gastos:*\n\n${lista}`);
     return;
   }
 
-  // ── FOTO: procesar comprobante ──────────────────────────────────────────
+  // ── FOTO: procesar comprobante ───────────────────────────────────────────
   if (message.photo) {
     const procesando = await sendMessage(chatId, "🔍 Analizando comprobante con IA...");
     const msgId = procesando.result?.message_id;
 
     try {
-      // Imagen de mayor resolución
       const fileId = message.photo[message.photo.length - 1].file_id;
       const base64Image = await getImageBase64(fileId);
 
-      // Llamar a Gemini Vision
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
       const result = await model.generateContent([
         PROMPT,
         { inlineData: { mimeType: "image/jpeg", data: base64Image } },
@@ -260,24 +237,19 @@ async function handleUpdate(update) {
       const datos = JSON.parse(jsonStr);
 
       if (!datos.monto) {
-        await editMessage(
-          chatId,
-          msgId,
-          "⚠️ No pude leer el monto del comprobante.\nIntentá con una foto más clara o usá `/manual`."
+        await editMessage(chatId, msgId,
+          "⚠️ No pude leer el monto.\nIntentá con una foto más clara o usá `/manual`."
         );
         return;
       }
 
-      // Guardar en Supabase
       await editMessage(chatId, msgId, "💾 Guardando en tu cuenta...");
       const { error } = await insertarGasto(supabaseUserId, datos);
 
       if (error) {
         await editMessage(chatId, msgId, `❌ Error al guardar: ${error.message}`);
       } else {
-        await editMessage(
-          chatId,
-          msgId,
+        await editMessage(chatId, msgId,
           `✅ *¡Gasto registrado!*\n\n` +
           `💰 Monto: *$${datos.monto}*\n` +
           `📝 Descripción: ${datos.descripcion}\n` +
@@ -287,24 +259,19 @@ async function handleUpdate(update) {
       }
     } catch (err) {
       console.error("Error procesando foto:", err);
-      await editMessage(
-        chatId,
-        msgId,
+      await editMessage(chatId, msgId,
         `❌ Ocurrió un error: ${err.message}\nIntentá de nuevo o usá \`/manual\`.`
       );
     }
     return;
   }
 
-  // Mensaje de texto sin comando reconocido
-  await sendMessage(
-    chatId,
-    "No entendí ese mensaje. Enviame una *foto de un comprobante* o usá /ayuda."
-  );
+  // Mensaje sin comando reconocido
+  await sendMessage(chatId, "No entendí ese mensaje. Enviame una *foto de un comprobante* o usá /ayuda.");
 }
 
-// ── Vercel Serverless Function entry point ──────────────────────────────────
-module.exports = async function handler(req, res) {
+// ── Vercel Serverless Function entry point (ESM) ────────────────────────────
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(200).json({ ok: true, message: "Bot de gastos activo 🤖" });
   }
@@ -315,6 +282,6 @@ module.exports = async function handler(req, res) {
     console.error("Error en webhook handler:", err);
   }
 
-  // Siempre respondemos 200 a Telegram (sino reintenta)
+  // Siempre respondemos 200 a Telegram (sino reintenta el envío)
   res.status(200).json({ ok: true });
-};
+}
