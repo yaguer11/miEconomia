@@ -255,7 +255,10 @@ async function handleUpdate(update) {
       const base64Image = await getImageBase64(fileId);
 
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const model = genAI.getGenerativeModel({
+        model: "gemini-3.6-flash",
+        generationConfig: { responseMimeType: "application/json" },
+      });
       const result = await model.generateContent([
         PROMPT,
         { inlineData: { mimeType: "image/jpeg", data: base64Image } },
