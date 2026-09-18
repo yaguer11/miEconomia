@@ -25,4 +25,5 @@ supabase_setup.sql
 *.njsproj
 *.sln
 *.sw?
+docs
 
