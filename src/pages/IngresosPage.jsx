@@ -57,12 +57,20 @@ export default function IngresosPage() {
 
   const totalEnModo = sumInMode(ingresosFiltrados.map(i => ({ monto: i.monto, moneda: i.moneda || 'ARS' })))
 
-  const handleEliminar = async (id) => {
-    if (eliminando === id) {
-      await eliminarIngreso(id)
-      setEliminando(null)
+  const handleEliminar = async (id, force = false) => {
+    if (force || eliminando === id) {
+      try {
+        await eliminarIngreso(id)
+      } catch (err) {
+        console.error('Error al eliminar ingreso:', err)
+      } finally {
+        setEliminando(null)
+      }
     } else {
       setEliminando(id)
+      setTimeout(() => {
+        setEliminando(prev => prev === id ? null : prev)
+      }, 3000)
     }
   }
 
@@ -357,7 +365,10 @@ export default function IngresosPage() {
         ingreso={detalle}
         onClose={() => setDetalle(null)}
         onEdit={(i) => { setDetalle(null); setModal({ mode: 'editar', ingreso: i }) }}
-        onDelete={(id) => { setDetalle(null); handleEliminar(id) }}
+        onDelete={async (id) => {
+          setDetalle(null)
+          await handleEliminar(id, true)
+        }}
         esFamiliar={esFamiliar}
         formatARS={formatARS}
         formatUSD={formatUSD}

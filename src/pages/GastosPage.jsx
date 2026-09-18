@@ -78,12 +78,20 @@ export default function GastosPage() {
   // Las métricas siempre reflejan el total real del mes, sin importar búsqueda o filtro de categoría
   const totalEnModo = sumInMode(gastos.map(g => ({ monto: g.monto, moneda: g.moneda || 'ARS' })))
 
-  const handleEliminar = async (id) => {
-    if (eliminando === id) {
-      await eliminarGasto(id)
-      setEliminando(null)
+  const handleEliminar = async (id, force = false) => {
+    if (force || eliminando === id) {
+      try {
+        await eliminarGasto(id)
+      } catch (err) {
+        console.error('Error al eliminar gasto:', err)
+      } finally {
+        setEliminando(null)
+      }
     } else {
       setEliminando(id)
+      setTimeout(() => {
+        setEliminando(prev => prev === id ? null : prev)
+      }, 3000)
     }
   }
 
@@ -538,7 +546,11 @@ export default function GastosPage() {
                   <Pencil size={14} /> Editar
                 </button>
                 <button
-                  onClick={() => { setDetalle(null); handleEliminar(g.id) }}
+                  onClick={async () => {
+                    const id = g.id
+                    setDetalle(null)
+                    await handleEliminar(id, true)
+                  }}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all text-sm font-medium"
                 >
                   <Trash2 size={14} /> Eliminar
