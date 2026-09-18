@@ -255,14 +255,30 @@ async function handleUpdate(update) {
       const base64Image = await getImageBase64(fileId);
 
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({
-        model: "gemini-3.6-flash",
-        generationConfig: { responseMimeType: "application/json" },
-      });
-      const result = await model.generateContent([
-        PROMPT,
-        { inlineData: { mimeType: "image/jpeg", data: base64Image } },
-      ]);
+      const candidateModels = ["gemini-3.5-flash-lite", "gemini-3.6-flash"];
+      let result = null;
+      let lastErr = null;
+
+      for (const modelName of candidateModels) {
+        try {
+          const model = genAI.getGenerativeModel({
+            model: modelName,
+            generationConfig: { responseMimeType: "application/json" },
+          });
+          result = await model.generateContent([
+            PROMPT,
+            { inlineData: { mimeType: "image/jpeg", data: base64Image } },
+          ]);
+          if (result) break;
+        } catch (err) {
+          console.warn(`Fallo con ${modelName}, intentando siguiente modelo...`, err.message);
+          lastErr = err;
+        }
+      }
+
+      if (!result) {
+        throw lastErr || new Error("No se pudo procesar el comprobante con la IA.");
+      }
 
       const rawText = result.response.text().trim();
       const jsonStr = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
